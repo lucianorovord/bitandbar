@@ -10,7 +10,20 @@
             Registra tus avances y mantente enfocado en tus objetivos de bienestar.
         </p>
     </section>
-
+@guest
+    <section class="home-actions" aria-label="Acciones principales">
+        <aside class="action-card">
+            <h3 class="action-card__title">Registra tus entrenamientos y comidas</h3>
+            <p class="action-card__text">
+                Lleva un mejor control de tus ejercicios y calorías para una mejor vida saludable. <br>
+                si no sabes como nosotros te podemos ayudar.
+            </p>
+            <br>
+            <a class="site-nav__link" href="{{ route('login') }}">Iniciar sesion</a>
+        </aside>
+    </section>
+@endguest
+@auth
     <section class="home-actions" aria-label="Acciones principales">
         <aside class="action-card">
             <h3 class="action-card__title">Registrar comida</h3>
@@ -107,7 +120,7 @@
             @endif
         </section>
     </section>
-
+@endauth
     <footer class="home-footer">
         <p>Bit & Bar | Nutricion y deporte para un estilo de vida saludable.</p>
     </footer>

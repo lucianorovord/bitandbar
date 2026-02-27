@@ -90,11 +90,8 @@ Route::get('/', function () {
         ],
         'workout_history' => array_reverse($workoutHistory),
     ]);
-});
+})->name('home');
 
-Route::get('/login', function () {
-    return view('login');
-});
 Route::get('/recetas', function () {
     return view('recetas.index');
 });
