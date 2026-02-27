@@ -1,9 +1,22 @@
 <?php
 
+use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApiNinjaExerciseController;
 use App\Http\Controllers\FoodDataController;
 use App\Http\Controllers\SpoonacularController;
-use Illuminate\Support\Facades\Route;
+
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+require __DIR__.'/auth.php';
 
 Route::get('/', function () {
     $history = session('meal_history', []);
@@ -106,3 +119,4 @@ Route::post('/entrenamiento/registro/editar/{workoutIndex}', [ApiNinjaExerciseCo
 Route::post('/entrenamiento/registro/eliminar/{workoutIndex}', [ApiNinjaExerciseController::class, 'deleteWorkoutRecord']);
 Route::post('/recipes/search-by-ingredients', [SpoonacularController::class, 'searchByIngredients']);
 Route::get('/recipes/{recipeId}/nutrition-details', [SpoonacularController::class, 'nutritionDetails']);
+
