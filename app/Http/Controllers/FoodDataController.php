@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\FoodDataSearchRequest;
+use App\Models\Comida;
+use App\Models\ComidaItem;
 use App\Services\FoodDataService;
 use App\Services\TextTranslationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Throwable;
 
@@ -41,7 +44,7 @@ class FoodDataController extends Controller
             'error' => $error,
             'cart' => $this->cartItems(),
             'cart_totals' => $this->cartTotals(),
-            'meal_history' => session('meal_history', []),
+            'meal_history' => $this->mealHistory(),
         ]);
     }
 
@@ -188,11 +191,50 @@ class FoodDataController extends Controller
                 ->with('food_error', 'No puedes registrar una comida vacia.');
         }
 
-        $history = session('meal_history', []);
         $mealType = $this->normalizeMealType((string) $data['meal_type']);
         $newNotes = trim((string) ($data['notes'] ?? ''));
 
+        if (Auth::check()) {
+            $userId = (int) Auth::id();
+            $meal = Comida::with('items')
+                ->where('user_id', $userId)
+                ->where('tipo_comida', $mealType)
+                ->first();
+
+            if ($meal) {
+                $existingItems = array_map(
+                    fn (ComidaItem $item): array => $this->mealItemFromModel($item),
+                    $meal->items->all()
+                );
+                $mergedItems = $this->mergeMealItems($existingItems, array_values($cart));
+
+                $meal->notes = $this->mergeNotes($meal->notes, $newNotes);
+                $meal->registered_at = now();
+                $meal->save();
+
+                $meal->items()->delete();
+                $this->persistMealItems($meal, $mergedItems);
+            } else {
+                $meal = Comida::create([
+                    'user_id' => $userId,
+                    'tipo_comida' => $mealType,
+                    'notes' => $newNotes !== '' ? $newNotes : null,
+                    'registered_at' => now(),
+                ]);
+
+                $this->persistMealItems($meal, array_values($cart));
+            }
+
+            session()->forget('meal_cart');
+
+            return redirect()->to($this->foodRegisterUrl($data['q'] ?? null))
+                ->with('food_success', 'Comida registrada correctamente.');
+        }
+
+        // Fallback para invitados hasta proteger rutas con auth.
+        $history = session('meal_history', []);
         $existingIndex = null;
+
         foreach ($history as $index => $meal) {
             $existingType = $this->normalizeMealType((string) ($meal['meal_type'] ?? ''));
             if ($existingType === $mealType) {
@@ -208,17 +250,13 @@ class FoodDataController extends Controller
             $mergedItems = $this->mergeMealItems($existingItems, array_values($cart));
 
             $existingNotes = trim((string) ($history[$existingIndex]['notes'] ?? ''));
-            $mergedNotes = $existingNotes;
-            if ($newNotes !== '') {
-                $mergedNotes = $existingNotes === ''
-                    ? $newNotes
-                    : ($existingNotes."\n".$newNotes);
-            }
+            $mergedNotes = $this->mergeNotes($existingNotes, $newNotes);
 
             $history[$existingIndex]['items'] = $mergedItems;
             $history[$existingIndex]['totals'] = $this->cartTotals($mergedItems);
-            $history[$existingIndex]['notes'] = $mergedNotes !== '' ? $mergedNotes : null;
+            $history[$existingIndex]['notes'] = $mergedNotes;
             $history[$existingIndex]['meal_type'] = $mealType;
+            $history[$existingIndex]['registered_at'] = now()->format('d/m/Y H:i');
         } else {
             $history[] = [
                 'registered_at' => now()->format('d/m/Y H:i'),
@@ -246,6 +284,22 @@ class FoodDataController extends Controller
             'q' => ['nullable', 'string', 'max:80'],
         ]);
 
+        if (Auth::check()) {
+            $meal = Comida::where('user_id', Auth::id())->find((int) $mealIndex);
+
+            if (!$meal) {
+                return redirect()->to($this->foodRegisterUrl($data['q'] ?? null))
+                    ->with('food_error', 'No se encontro el registro de comida para editar.');
+            }
+
+            $meal->tipo_comida = $this->normalizeMealType((string) $data['meal_type']);
+            $meal->notes = $data['notes'] ?? null;
+            $meal->save();
+
+            return redirect()->to($this->foodRegisterUrl($data['q'] ?? null))
+                ->with('food_success', 'Registro de comida actualizado.');
+        }
+
         $history = session('meal_history', []);
         $index = (int) $mealIndex;
 
@@ -268,6 +322,20 @@ class FoodDataController extends Controller
             'q' => ['nullable', 'string', 'max:80'],
         ]);
 
+        if (Auth::check()) {
+            $meal = Comida::where('user_id', Auth::id())->find((int) $mealIndex);
+
+            if (!$meal) {
+                return redirect()->to($this->foodRegisterUrl($request->input('q')))
+                    ->with('food_error', 'No se encontro el registro de comida para eliminar.');
+            }
+
+            $meal->delete();
+
+            return redirect()->to($this->foodRegisterUrl($request->input('q')))
+                ->with('food_success', 'Registro de comida eliminado.');
+        }
+
         $history = session('meal_history', []);
         $index = (int) $mealIndex;
 
@@ -281,6 +349,79 @@ class FoodDataController extends Controller
 
         return redirect()->to($this->foodRegisterUrl($request->input('q')))
             ->with('food_success', 'Registro de comida eliminado.');
+    }
+
+    private function mealHistory(): array
+    {
+        if (!Auth::check()) {
+            $history = session('meal_history', []);
+            return is_array($history) ? $history : [];
+        }
+
+        $meals = Comida::with('items')
+            ->where('user_id', Auth::id())
+            ->orderBy('registered_at')
+            ->get();
+
+        $history = [];
+        foreach ($meals as $meal) {
+            $items = array_map(fn (ComidaItem $item): array => $this->mealItemFromModel($item), $meal->items->all());
+            $history[$meal->id] = [
+                'registered_at' => optional($meal->registered_at ?? $meal->created_at)?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'),
+                'meal_type' => $meal->tipo_comida,
+                'notes' => $meal->notes,
+                'items' => $items,
+                'totals' => $this->cartTotals($items),
+            ];
+        }
+
+        return $history;
+    }
+
+    private function mealItemFromModel(ComidaItem $item): array
+    {
+        return [
+            'fdc_id' => $item->fdc_id,
+            'name' => $item->nombre,
+            'brand' => $item->brand,
+            'calories' => $this->toNullableFloat($item->calorias),
+            'protein' => $this->toNullableFloat($item->proteinas),
+            'carbs' => $this->toNullableFloat($item->carbs),
+            'fat' => $this->toNullableFloat($item->fat),
+            'quantity' => $this->toNullableFloat($item->cantidad) ?? 1,
+        ];
+    }
+
+    private function persistMealItems(Comida $meal, array $items): void
+    {
+        $payload = array_map(function (array $item): array {
+            return [
+                'fdc_id' => $item['fdc_id'] ?? null,
+                'nombre' => (string) ($item['name'] ?? 'Alimento'),
+                'brand' => $item['brand'] ?? null,
+                'cantidad' => (float) ($item['quantity'] ?? 1),
+                'calorias' => $this->toNullableFloat($item['calories'] ?? null),
+                'proteinas' => $this->toNullableFloat($item['protein'] ?? null),
+                'carbs' => $this->toNullableFloat($item['carbs'] ?? null),
+                'fat' => $this->toNullableFloat($item['fat'] ?? null),
+            ];
+        }, $items);
+
+        $meal->items()->createMany($payload);
+    }
+
+    private function mergeNotes(?string $existingNotes, string $newNotes): ?string
+    {
+        $existingNotes = trim((string) $existingNotes);
+        if ($newNotes === '') {
+            return $existingNotes !== '' ? $existingNotes : null;
+        }
+
+        if ($existingNotes === '') {
+            return $newNotes;
+        }
+
+        return $existingNotes."\n".$newNotes;
     }
 
     private function foodRegisterUrl(?string $query): string

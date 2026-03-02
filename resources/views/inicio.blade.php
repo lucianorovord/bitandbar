@@ -10,6 +10,33 @@
             Registra tus avances y mantente enfocado en tus objetivos de bienestar.
         </p>
     </section>
+
+    <section class="home-highlight home-highlight--banner" aria-label="Resumen visual de la plataforma">
+        <div class="home-highlight__overlay">
+            <h3>Tu plan saludable en un solo panel</h3>
+            <p>Placeholder de imagen de fondo. Aqui puedes colocar una foto motivacional de gimnasio o comida saludable.</p>
+        </div>
+    </section>
+
+    <section class="home-feature home-feature--food" aria-label="Registro de comidas">
+        <div class="home-feature__media">
+            <div class="home-feature__media-placeholder">Imagen registro de comidas</div>
+        </div>
+        <div class="home-feature__content">
+            <h3>Registro de comidas</h3>
+            <p>Busca alimentos, anadelos al carrito nutricional y guarda cada comida con su reparto de calorias y macros.</p>
+        </div>
+    </section>
+
+    <section class="home-feature home-feature--training" aria-label="Registro de entrenamientos">
+        <div class="home-feature__content">
+            <h3>Registro de entrenamientos</h3>
+            <p>Selecciona grupo muscular, revisa ejercicios por dificultad y registra volumen total para seguir tu progreso semanal.</p>
+        </div>
+        <div class="home-feature__media">
+            <div class="home-feature__media-placeholder">Imagen registro de entrenamientos</div>
+        </div>
+    </section>
 @guest
     <section class="home-actions" aria-label="Acciones principales">
         <aside class="action-card">

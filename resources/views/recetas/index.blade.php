@@ -1,7 +1,7 @@
 @extends('plantilla')
 @section('title','Recetas')
 @section('contenido')
-    @vite('resources/sass/inicio.scss')
+    @vite('resources/sass/comidas/comidas.scss')
     <section class="hero">
         <p class="hero__kicker">Recetas</p>
         <h2 class="hero__title">Buscar recetas por ingredientes</h2>

@@ -1,7 +1,7 @@
 @extends('plantilla')
 @section('title','Registrar comida')
 @section('contenido')
-    @vite('resources/sass/inicio.scss')
+    @vite('resources/sass/comidas/comidas.scss')
     <section class="hero">
         <p class="hero__kicker">Nutricion</p>
         <h2 class="hero__title">Registrar comida</h2>
@@ -36,33 +36,6 @@
         @if(session('food_error'))
             <p class="form-error">{{ session('food_error') }}</p>
         @endif
-    </section>
-
-    <section
-        class="results-panel"
-        id="recipe-panel"
-        data-search-url="{{ url('/recipes/search-by-ingredients') }}"
-        data-nutrition-base-url="{{ url('/recipes') }}"
-        data-import-url="{{ url('/comida/carrito/importar-receta') }}"
-        data-csrf-token="{{ csrf_token() }}"
-        data-query="{{ $query }}"
-        data-cart-ingredients='@json(array_values(array_unique(array_map(fn ($item) => $item['name'] ?? '', $cart ?? []))))'
-    >
-        <h3>Sugerencia de recetas por ingredientes</h3>
-        <div class="search-form">
-            <label for="recipe-ingredients">Ingredientes (separados por coma)</label>
-            <div class="search-form__row">
-                <input
-                    id="recipe-ingredients"
-                    type="text"
-                    placeholder="Ejemplo: tortilla, chicken, cheese, onion"
-                >
-                <button type="button" id="use-cart-ingredients" class="mini-btn">Usar carrito</button>
-            </div>
-            <p id="recipe-search-help" class="hero__text">Empieza a escribir y se sugeriran recetas automaticamente.</p>
-            <p id="recipe-search-error" class="form-error" style="display:none;"></p>
-        </div>
-        <div id="recipe-suggestions" class="exercise-grid"></div>
     </section>
 
     <section class="results-panel">
@@ -197,6 +170,29 @@
     @elseif(!empty($query))
         <section class="results-panel">
             <p>No se encontraron resultados para la busqueda actual.</p>
+        </section>
+    @endif
+
+
+    @if(!empty($query))
+        <section
+            class="results-panel"
+            id="recipe-panel"
+            data-search-url="{{ url('/recipes/search-by-ingredients') }}"
+            data-nutrition-base-url="{{ url('/recipes') }}"
+            data-import-url="{{ url('/comida/carrito/importar-receta') }}"
+            data-csrf-token="{{ csrf_token() }}"
+            data-query="{{ $query }}"
+            data-cart-ingredients='@json(array_values(array_unique(array_map(fn ($item) => $item['name'] ?? '', $cart ?? []))))'
+        >
+            <h3>Recetas sugeridas con ese ingrediente</h3>
+            <div class="search-form">
+                <p id="recipe-search-help" class="hero__text">
+                    Resultados del ingrediente buscado en formato carrusel.
+                </p>
+                <p id="recipe-search-error" class="form-error" style="display:none;"></p>
+            </div>
+            <div id="recipe-suggestions" class="recipe-slider"></div>
         </section>
     @endif
 

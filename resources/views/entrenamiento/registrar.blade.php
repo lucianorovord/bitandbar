@@ -1,87 +1,80 @@
 @extends('plantilla')
 @section('title','Registrar entrenamiento')
 @section('contenido')
-    @vite('resources/sass/inicio.scss')
+    @vite('resources/sass/entrenamientos/entrenamiento.scss')
+    @vite('resources/js/entrenamiento/registrar.js')
     <section class="hero">
         <p class="hero__kicker">Deporte</p>
         <h2 class="hero__title">Registrar entrenamiento</h2>
-        <p class="hero__text">
-            Consulta ejercicios con API Ninjas por musculo, tipo, dificultad o nombre.
-        </p>
+
     </section>
 
+    @php
+        $muscleCards = [
+            ['value' => 'abdominals', 'label' => 'Abdominales', 'img' => asset('images/muscles/abs.png')],
+            ['value' => 'abductors', 'label' => 'Abductores', 'img' => asset('images/muscles/abductores.png')],
+            ['value' => 'adductors', 'label' => 'Aductores', 'img' => asset('images/muscles/aductores.png')],
+            ['value' => 'biceps', 'label' => 'Biceps', 'img' => asset('images/muscles/biceps.png')],
+            ['value' => 'calves', 'label' => 'Gemelos', 'img' => asset('images/muscles/gemelos.png')],
+            ['value' => 'chest', 'label' => 'Pecho', 'img' => asset('images/muscles/chest.png')],
+            ['value' => 'forearms', 'label' => 'Antebrazos', 'img' => asset('images/muscles/forearms.png')],
+            ['value' => 'glutes', 'label' => 'Gluteos', 'img' => asset('images/muscles/gluts.png')],
+            ['value' => 'hamstrings', 'label' => 'Isquiotibiales', 'img' => asset('images/muscles/hamstrings.png')],
+            ['value' => 'lats', 'label' => 'Dorsales', 'img' => asset('images/muscles/lats.png')],
+            ['value' => 'lower_back', 'label' => 'Espalda baja', 'img' => asset('images/muscles/lower_back.png')],
+            ['value' => 'middle_back', 'label' => 'Espalda media', 'img' => asset('images/muscles/middle_back.png')],
+            ['value' => 'neck', 'label' => 'Cuello', 'img' => asset('images/muscles/cuello.png')],
+            ['value' => 'quadriceps', 'label' => 'Cuadriceps', 'img' => asset('images/muscles/quads.png')],
+            ['value' => 'traps', 'label' => 'Trapecio', 'img' => asset('images/muscles/traps.png')],
+            ['value' => 'triceps', 'label' => 'Triceps', 'img' => asset('images/muscles/triceps.png')],
+            ['value' => 'shoulders', 'label' => 'Hombros', 'img' => asset('images/muscles/shoulders.png')],
+
+        ];
+    @endphp
+
     <section class="search-panel">
-        <div class="quick-filters">
-            <a class="mini-btn" href="{{ url('/entrenamiento/registrar?muscle=chest') }}">Pecho</a>
-            <a class="mini-btn" href="{{ url('/entrenamiento/registrar?muscle=middle_back') }}">Espalda Baja</a>
-            <a class="mini-btn" href="{{ url('/entrenamiento/registrar?muscle=biceps') }}">Biceps</a>
-            <a class="mini-btn" href="{{ url('/entrenamiento/registrar?muscle=quadriceps') }}">Pierna</a>
-            <a class="mini-btn" href="{{ url('/entrenamiento/registrar?difficulty=beginner') }}">Principiante</a>
-        </div>
         <form method="GET" action="{{ url('/entrenamiento/registrar') }}" class="search-form">
-            <label for="muscle">Filtros de busqueda (puedes combinar varios)</label>
-            <div class="search-form__row">
-                <select id="name" name="name">
-                    <option value="">Nombre (opcional)</option>
-                    <option value="bench press" @selected(($filters['name'] ?? '') === 'bench press')>Bench press</option>
-                    <option value="push up" @selected(($filters['name'] ?? '') === 'push up')>Push up</option>
-                    <option value="squat" @selected(($filters['name'] ?? '') === 'squat')>Squat</option>
-                    <option value="deadlift" @selected(($filters['name'] ?? '') === 'deadlift')>Deadlift</option>
-                    <option value="pull up" @selected(($filters['name'] ?? '') === 'pull up')>Pull up</option>
-                    <option value="bicep curl" @selected(($filters['name'] ?? '') === 'bicep curl')>Bicep curl</option>
-                </select>
-                <select id="muscle" name="muscle">
-                    <option value="">Musculo (opcional)</option>
-                    <option value="biceps" @selected(($filters['muscle'] ?? '') === 'biceps')>Biceps</option>
-                    <option value="triceps" @selected(($filters['muscle'] ?? '') === 'triceps')>Triceps</option>
-                    <option value="chest" @selected(($filters['muscle'] ?? '') === 'chest')>Pecho</option>
-                    <option value="back" @selected(($filters['muscle'] ?? '') === 'back')>Espalda</option>
-                    <option value="shoulders" @selected(($filters['muscle'] ?? '') === 'shoulders')>Hombros</option>
-                    <option value="quadriceps" @selected(($filters['muscle'] ?? '') === 'quadriceps')>Cuadriceps</option>
-                    <option value="hamstrings" @selected(($filters['muscle'] ?? '') === 'hamstrings')>Isquiotibiales</option>
-                    <option value="abdominals" @selected(($filters['muscle'] ?? '') === 'abdominals')>Abdominales</option>
-                </select>
+            <label>Selecciona grupo muscular</label>
+            <div class="muscle-grid">
+                @foreach($muscleCards as $card)
+                    <label class="muscle-card {{ ($filters['muscle'] ?? '') === $card['value'] ? 'muscle-card--active' : '' }}">
+                        <input type="radio" name="muscle" value="{{ $card['value'] }}" @checked(($filters['muscle'] ?? '') === $card['value'])>
+                        <img src="{{ $card['img'] }}" alt="{{ $card['label'] }}">
+                        <span>{{ $card['label'] }}</span>
+                    </label>
+                @endforeach
             </div>
+
             <div class="search-form__row search-form__row--spaced">
-                <select id="type" name="type">
-                    <option value="">Tipo (opcional)</option>
-                    <option value="strength" @selected(($filters['type'] ?? '') === 'strength')>Strength</option>
-                    <option value="stretching" @selected(($filters['type'] ?? '') === 'stretching')>Stretching</option>
-                    <option value="plyometrics" @selected(($filters['type'] ?? '') === 'plyometrics')>Plyometrics</option>
-                    <option value="cardio" @selected(($filters['type'] ?? '') === 'cardio')>Cardio</option>
-                    <option value="powerlifting" @selected(($filters['type'] ?? '') === 'powerlifting')>Powerlifting</option>
-                    <option value="olympic_weightlifting" @selected(($filters['type'] ?? '') === 'olympic_weightlifting')>Olympic weightlifting</option>
-                </select>
-                <select id="difficulty" name="difficulty">
-                    <option value="">Dificultad (opcional)</option>
-                    <option value="beginner" @selected(($filters['difficulty'] ?? '') === 'beginner')>beginner</option>
-                    <option value="intermediate" @selected(($filters['difficulty'] ?? '') === 'intermediate')>intermediate</option>
-                    <option value="expert" @selected(($filters['difficulty'] ?? '') === 'expert')>expert</option>
-                </select>
-                <button type="submit" class="hero__cta">Buscar</button>
+                <button type="submit" class="hero__cta">Buscar ejercicios</button>
             </div>
-            @error('name')
-                <p class="form-error">{{ $message }}</p>
-            @enderror
-            @error('muscle')
-                <p class="form-error">{{ $message }}</p>
-            @enderror
-            @error('type')
-                <p class="form-error">{{ $message }}</p>
-            @enderror
-            @error('difficulty')
-                <p class="form-error">{{ $message }}</p>
-            @enderror
-            @if(!empty($error))
-                <p class="form-error">{{ $error }}</p>
-            @endif
-            @if(session('workout_success'))
-                <p class="form-success">{{ session('workout_success') }}</p>
-            @endif
-            @if(session('workout_error'))
-                <p class="form-error">{{ session('workout_error') }}</p>
-            @endif
         </form>
+
+        @if(!empty($filters['muscle']))
+            <form method="GET" action="{{ url('/entrenamiento/registrar') }}" class="search-form">
+                <label for="difficulty">Filtra por dificultad (opcional)</label>
+                <div class="search-form__row">
+                    <input type="hidden" name="muscle" value="{{ $filters['muscle'] }}">
+                    <select id="difficulty" name="difficulty">
+                        <option value="">Todas las dificultades</option>
+                        <option value="beginner" @selected(($filters['difficulty'] ?? '') === 'beginner')>Principiante</option>
+                        <option value="intermediate" @selected(($filters['difficulty'] ?? '') === 'intermediate')>Intermedio</option>
+                        <option value="expert" @selected(($filters['difficulty'] ?? '') === 'expert')>Avanzado</option>
+                    </select>
+                    <button type="submit" class="mini-btn">Aplicar</button>
+                </div>
+            </form>
+        @endif
+
+        @if(!empty($error))
+            <p class="form-error">{{ $error }}</p>
+        @endif
+        @if(session('workout_success'))
+            <p class="form-success">{{ session('workout_success') }}</p>
+        @endif
+        @if(session('workout_error'))
+            <p class="form-error">{{ session('workout_error') }}</p>
+        @endif
     </section>
 
     <section class="results-panel">
@@ -110,9 +103,7 @@
                                 <td>
                                     <form method="POST" action="{{ url('/entrenamiento/carrito/actualizar/'.$itemKey) }}" class="inline-form">
                                         @csrf
-                                        <input type="hidden" name="name_filter" value="{{ $filters['name'] ?? '' }}">
                                         <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                                        <input type="hidden" name="type_filter" value="{{ $filters['type'] ?? '' }}">
                                         <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
                                         <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
                                         <input type="number" name="sets" min="1" max="20" value="{{ $item['sets'] ?? 3 }}">
@@ -122,9 +113,7 @@
                                     </form>
                                     <form method="POST" action="{{ url('/entrenamiento/carrito/eliminar/'.$itemKey) }}">
                                         @csrf
-                                        <input type="hidden" name="name_filter" value="{{ $filters['name'] ?? '' }}">
                                         <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                                        <input type="hidden" name="type_filter" value="{{ $filters['type'] ?? '' }}">
                                         <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
                                         <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
                                         <button type="submit" class="mini-btn mini-btn--danger">Quitar</button>
@@ -157,18 +146,14 @@
                     <input type="text" name="notes" placeholder="Notas (ej: foco en tecnica)">
                     <button type="submit" class="hero__cta">Registrar entrenamiento</button>
                 </div>
-                <input type="hidden" name="name_filter" value="{{ $filters['name'] ?? '' }}">
                 <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                <input type="hidden" name="type_filter" value="{{ $filters['type'] ?? '' }}">
                 <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
                 <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
             </form>
 
             <form method="POST" action="{{ url('/entrenamiento/carrito/limpiar') }}">
                 @csrf
-                <input type="hidden" name="name_filter" value="{{ $filters['name'] ?? '' }}">
                 <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                <input type="hidden" name="type_filter" value="{{ $filters['type'] ?? '' }}">
                 <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
                 <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
                 <button type="submit" class="mini-btn mini-btn--danger">Vaciar registro</button>
@@ -180,13 +165,13 @@
 
     @if($exercises->count() > 0)
         <section class="results-panel">
-            <h3>Resultados de ejercicios</h3>
+            <h3>Ejercicios del grupo muscular seleccionado</h3>
             <div class="exercise-grid">
                 @foreach($exercises as $exercise)
                     <article class="exercise-card">
                         <h2 class="exercise-card__title">{{ $exercise['name'] }}</h2>
                         <div class="exercise-card__meta">
-                            <span class="exercise-pill"><strong>Tipo:</strong> {{ $exercise['type'] ?? '-' }}</span>
+                            <span class="exercise-pill exercise-pill--type"><strong>Tipo:</strong> {{ $exercise['type'] ?? '-' }}</span>
                             <span class="exercise-pill"><strong>Musculo:</strong> {{ $exercise['muscle'] ?? '-' }}</span>
                             <span class="exercise-pill"><strong>Dificultad:</strong> {{ $exercise['difficulty'] ?? '-' }}</span>
                             <span class="exercise-pill"><strong>Equipo:</strong> {{ $exercise['equipment'] ?? '-' }}</span>
@@ -202,9 +187,7 @@
                         <div class="exercise-card__section">
                             <form method="POST" action="{{ url('/entrenamiento/carrito/agregar') }}" class="search-form">
                                 @csrf
-                                <input type="hidden" name="name_filter" value="{{ $filters['name'] ?? '' }}">
                                 <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                                <input type="hidden" name="type_filter" value="{{ $filters['type'] ?? '' }}">
                                 <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
                                 <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
                                 <input type="hidden" name="name" value="{{ $exercise['name'] }}">
@@ -261,7 +244,7 @@
         </section>
     @elseif(!empty($has_filters))
         <section class="results-panel">
-            <p>No se encontraron ejercicios para ese filtro.</p>
+            <p>No se encontraron ejercicios para ese grupo muscular con la dificultad indicada.</p>
         </section>
     @endif
 
@@ -296,18 +279,14 @@
                                 <input type="text" name="notes" value="{{ $workout['notes'] ?? '' }}" placeholder="Editar nota">
                                 <button type="submit" class="mini-btn">Guardar cambios</button>
                             </div>
-                            <input type="hidden" name="name_filter" value="{{ $filters['name'] ?? '' }}">
                             <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                            <input type="hidden" name="type_filter" value="{{ $filters['type'] ?? '' }}">
                             <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
                             <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
                         </form>
 
                         <form method="POST" action="{{ url('/entrenamiento/registro/eliminar/'.$workoutIndex) }}">
                             @csrf
-                            <input type="hidden" name="name_filter" value="{{ $filters['name'] ?? '' }}">
                             <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                            <input type="hidden" name="type_filter" value="{{ $filters['type'] ?? '' }}">
                             <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
                             <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
                             <button type="submit" class="mini-btn mini-btn--danger">Eliminar registro</button>

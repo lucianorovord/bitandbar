@@ -1,11 +1,9 @@
 const recipePanel = document.getElementById('recipe-panel');
 
 if (recipePanel) {
-    const recipeInput = document.getElementById('recipe-ingredients');
     const recipeError = document.getElementById('recipe-search-error');
     const recipeHelp = document.getElementById('recipe-search-help');
     const recipeResults = document.getElementById('recipe-suggestions');
-    const useCartIngredientsBtn = document.getElementById('use-cart-ingredients');
 
     const searchUrl = recipePanel.dataset.searchUrl;
     const nutritionBaseUrl = recipePanel.dataset.nutritionBaseUrl;
@@ -21,12 +19,27 @@ if (recipePanel) {
     }
 
     const recipeDetailsCache = {};
-    let recipeSearchTimer = null;
 
-    const getIngredientArray = (raw) => raw
-        .split(',')
-        .map((v) => v.trim())
-        .filter(Boolean);
+    const normalizeIngredient = (value) => String(value || '')
+        .replace(/\(.*?\)/g, '')
+        .replace(/receta:.*/i, '')
+        .trim();
+
+    const buildIngredients = () => {
+        const ingredients = [];
+
+        const normalizedQuery = normalizeIngredient(query);
+        if (normalizedQuery !== '') {
+            ingredients.push(normalizedQuery);
+        }
+
+        cartIngredientNames
+            .map(normalizeIngredient)
+            .filter(Boolean)
+            .forEach((name) => ingredients.push(name));
+
+        return [...new Set(ingredients)].slice(0, 5);
+    };
 
     const renderNutritionPanel = (recipeId, data) => {
         const target = document.getElementById(`recipe-nutrition-${recipeId}`);
@@ -171,16 +184,16 @@ if (recipePanel) {
     };
 
     const fetchRecipeSuggestions = async () => {
-        const ingredients = getIngredientArray(recipeInput.value);
+        const ingredients = buildIngredients();
 
-        if (ingredients.length < 2) {
-            recipeResults.innerHTML = '';
+        if (ingredients.length === 0) {
+            recipeResults.innerHTML = '<p class="hero__text">Busca o anade un alimento para ver recetas sugeridas.</p>';
             recipeError.style.display = 'none';
-            recipeHelp.textContent = 'Anade al menos 2 ingredientes para recibir sugerencias.';
+            recipeHelp.textContent = 'Las recetas se generan automaticamente con tu alimento buscado y el carrito actual.';
             return;
         }
 
-        recipeHelp.textContent = 'Consultando recetas...';
+        recipeHelp.textContent = `Recetas sugeridas para: ${ingredients.join(', ')}`;
         recipeError.style.display = 'none';
 
         try {
@@ -199,7 +212,6 @@ if (recipePanel) {
 
             const data = await response.json();
             renderRecipeCards(data);
-            recipeHelp.textContent = `Sugerencias generadas para: ${ingredients.join(', ')}`;
         } catch (_error) {
             recipeError.textContent = 'No se pudieron cargar sugerencias de recetas en este momento.';
             recipeError.style.display = 'block';
@@ -207,20 +219,5 @@ if (recipePanel) {
         }
     };
 
-    recipeInput.addEventListener('input', () => {
-        clearTimeout(recipeSearchTimer);
-        recipeSearchTimer = setTimeout(fetchRecipeSuggestions, 600);
-    });
-
-    useCartIngredientsBtn.addEventListener('click', () => {
-        const names = cartIngredientNames.filter(Boolean);
-        if (names.length === 0) {
-            recipeError.textContent = 'El carrito esta vacio, no hay ingredientes para sugerir recetas.';
-            recipeError.style.display = 'block';
-            return;
-        }
-
-        recipeInput.value = names.join(', ');
-        fetchRecipeSuggestions();
-    });
+    fetchRecipeSuggestions();
 }

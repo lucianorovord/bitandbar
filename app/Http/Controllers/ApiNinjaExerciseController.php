@@ -3,53 +3,46 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ApiNinjaExerciseSearchRequest;
+use App\Models\Ejercicio;
+use App\Models\EjercicioItem;
 use App\Services\ApiNinjaExerciseService;
-use App\Services\TextTranslationService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Throwable;
 
 class ApiNinjaExerciseController extends Controller
 {
-    public function __construct(
-        private ApiNinjaExerciseService $exerciseService,
-        private TextTranslationService $translator
-    )
+    public function __construct(private ApiNinjaExerciseService $exerciseService)
     {
     }
 
     public function register(ApiNinjaExerciseSearchRequest $request): View
     {
         $filters = [
-            'name' => trim((string) $request->validated('name', '')),
             'muscle' => trim((string) $request->validated('muscle', '')),
-            'type' => trim((string) $request->validated('type', '')),
             'difficulty' => trim((string) $request->validated('difficulty', '')),
         ];
-        $activeFilters = array_filter($filters, fn ($value) => $value !== '');
-        $apiFilters = $this->translateFiltersToEnglish($activeFilters);
+
+        $apiFilters = array_filter($filters, fn ($value) => $value !== '');
+
         $allExercises = [];
         $error = null;
+        $perPage = 3;
+        $page = max(1, (int) $request->query('page', 1));
+        $total = 0;
 
-        if (!empty($apiFilters)) {
+        if (!empty($apiFilters['muscle'])) {
             try {
-                $perPage = 6;
-                $page = max(1, (int) $request->query('page', 1));
                 $result = $this->exerciseService->searchPaged($apiFilters, $page, $perPage);
                 $allExercises = $result['items'];
                 $total = (int) ($result['total'] ?? 0);
             } catch (Throwable $exception) {
                 report($exception);
                 $error = $this->friendlyApiError($exception->getMessage());
-                $allExercises = [];
-                $total = 0;
             }
-        } else {
-            $perPage = 6;
-            $page = 1;
-            $total = 0;
         }
 
         $exercises = new LengthAwarePaginator(
@@ -65,12 +58,12 @@ class ApiNinjaExerciseController extends Controller
 
         return view('entrenamiento.registrar', [
             'filters' => $filters,
-            'has_filters' => !empty($apiFilters),
+            'has_filters' => !empty($apiFilters['muscle']),
             'exercises' => $exercises,
             'error' => $error,
             'workout_cart' => $this->cartItems(),
             'workout_totals' => $this->cartTotals(),
-            'workout_history' => session('workout_history', []),
+            'workout_history' => $this->workoutHistory(),
         ]);
     }
 
@@ -87,9 +80,7 @@ class ApiNinjaExerciseController extends Controller
             'sets' => ['nullable', 'integer', 'min:1', 'max:20'],
             'reps' => ['nullable', 'integer', 'min:1', 'max:100'],
             'minutes' => ['nullable', 'integer', 'min:0', 'max:300'],
-            'name_filter' => ['nullable', 'string', 'max:80'],
             'muscle_filter' => ['nullable', 'string', 'max:80'],
-            'type_filter' => ['nullable', 'string', 'max:80'],
             'difficulty_filter' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -131,9 +122,7 @@ class ApiNinjaExerciseController extends Controller
             'sets' => ['required', 'integer', 'min:1', 'max:20'],
             'reps' => ['required', 'integer', 'min:1', 'max:100'],
             'minutes' => ['nullable', 'integer', 'min:0', 'max:300'],
-            'name_filter' => ['nullable', 'string', 'max:80'],
             'muscle_filter' => ['nullable', 'string', 'max:80'],
-            'type_filter' => ['nullable', 'string', 'max:80'],
             'difficulty_filter' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -153,9 +142,7 @@ class ApiNinjaExerciseController extends Controller
     public function removeFromCart(Request $request, string $itemKey): RedirectResponse
     {
         $data = $request->validate([
-            'name_filter' => ['nullable', 'string', 'max:80'],
             'muscle_filter' => ['nullable', 'string', 'max:80'],
-            'type_filter' => ['nullable', 'string', 'max:80'],
             'difficulty_filter' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -171,9 +158,7 @@ class ApiNinjaExerciseController extends Controller
     public function clearCart(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name_filter' => ['nullable', 'string', 'max:80'],
             'muscle_filter' => ['nullable', 'string', 'max:80'],
-            'type_filter' => ['nullable', 'string', 'max:80'],
             'difficulty_filter' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -189,9 +174,7 @@ class ApiNinjaExerciseController extends Controller
         $data = $request->validate([
             'training_type' => ['required', 'string', 'max:60'],
             'notes' => ['nullable', 'string', 'max:600'],
-            'name_filter' => ['nullable', 'string', 'max:80'],
             'muscle_filter' => ['nullable', 'string', 'max:80'],
-            'type_filter' => ['nullable', 'string', 'max:80'],
             'difficulty_filter' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -202,51 +185,40 @@ class ApiNinjaExerciseController extends Controller
                 ->with('workout_error', 'No puedes registrar un entrenamiento vacio.');
         }
 
-        $history = session('workout_history', []);
+        $userId = (int) Auth::id();
         $trainingType = $this->normalizeTrainingType((string) $data['training_type']);
         $newNotes = trim((string) ($data['notes'] ?? ''));
 
-        $existingIndex = null;
-        foreach ($history as $index => $workout) {
-            $existingType = $this->normalizeTrainingType((string) ($workout['training_type'] ?? ''));
-            if ($existingType === $trainingType) {
-                $existingIndex = $index;
-                break;
-            }
-        }
+        $workout = Ejercicio::with('items')
+            ->where('user_id', $userId)
+            ->where('tipo_entrene', $trainingType)
+            ->first();
 
-        if ($existingIndex !== null) {
-            $existingItems = is_array($history[$existingIndex]['items'] ?? null)
-                ? $history[$existingIndex]['items']
-                : [];
+        if ($workout) {
+            $existingItems = array_map(
+                fn (EjercicioItem $item): array => $this->workoutItemFromModel($item),
+                $workout->items->all()
+            );
             $mergedItems = $this->mergeWorkoutItems($existingItems, array_values($cart));
 
-            $existingNotes = trim((string) ($history[$existingIndex]['notes'] ?? ''));
-            $mergedNotes = $existingNotes;
-            if ($newNotes !== '') {
-                $mergedNotes = $existingNotes === ''
-                    ? $newNotes
-                    : ($existingNotes."\n".$newNotes);
-            }
+            $workout->notes = $this->mergeNotes($workout->notes, $newNotes);
+            $workout->registered_at = now();
+            $workout->save();
 
-            $history[$existingIndex]['training_type'] = $trainingType;
-            $history[$existingIndex]['items'] = $mergedItems;
-            $history[$existingIndex]['totals'] = $this->cartTotals($mergedItems);
-            $history[$existingIndex]['notes'] = $mergedNotes !== '' ? $mergedNotes : null;
+            $workout->items()->delete();
+            $this->persistWorkoutItems($workout, $mergedItems);
         } else {
-            $history[] = [
-                'registered_at' => now()->format('d/m/Y H:i'),
-                'training_type' => $trainingType,
+            $workout = Ejercicio::create([
+                'user_id' => $userId,
+                'tipo_entrene' => $trainingType,
                 'notes' => $newNotes !== '' ? $newNotes : null,
-                'items' => array_values($cart),
-                'totals' => $this->cartTotals($cart),
-            ];
+                'registered_at' => now(),
+            ]);
+
+            $this->persistWorkoutItems($workout, array_values($cart));
         }
 
-        session([
-            'workout_history' => $history,
-            'workout_cart' => [],
-        ]);
+        session()->forget('workout_cart');
 
         return redirect()->to($this->trainingRegisterUrl($data))
             ->with('workout_success', 'Entrenamiento registrado correctamente.');
@@ -257,23 +229,20 @@ class ApiNinjaExerciseController extends Controller
         $data = $request->validate([
             'training_type' => ['required', 'string', 'max:60'],
             'notes' => ['nullable', 'string', 'max:600'],
-            'name_filter' => ['nullable', 'string', 'max:80'],
             'muscle_filter' => ['nullable', 'string', 'max:80'],
-            'type_filter' => ['nullable', 'string', 'max:80'],
             'difficulty_filter' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $history = session('workout_history', []);
-        $index = (int) $workoutIndex;
-        if (!isset($history[$index]) || !is_array($history[$index])) {
+        $workout = Ejercicio::where('user_id', Auth::id())->find((int) $workoutIndex);
+        if (!$workout) {
             return redirect()->to($this->trainingRegisterUrl($data))
                 ->with('workout_error', 'No se encontro el registro de entrenamiento para editar.');
         }
 
-        $history[$index]['training_type'] = $this->normalizeTrainingType((string) $data['training_type']);
-        $history[$index]['notes'] = $data['notes'] ?? null;
-        session(['workout_history' => $history]);
+        $workout->tipo_entrene = $this->normalizeTrainingType((string) $data['training_type']);
+        $workout->notes = $data['notes'] ?? null;
+        $workout->save();
 
         return redirect()->to($this->trainingRegisterUrl($data))
             ->with('workout_success', 'Registro de entrenamiento actualizado.');
@@ -282,22 +251,18 @@ class ApiNinjaExerciseController extends Controller
     public function deleteWorkoutRecord(Request $request, string $workoutIndex): RedirectResponse
     {
         $data = $request->validate([
-            'name_filter' => ['nullable', 'string', 'max:80'],
             'muscle_filter' => ['nullable', 'string', 'max:80'],
-            'type_filter' => ['nullable', 'string', 'max:80'],
             'difficulty_filter' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $history = session('workout_history', []);
-        $index = (int) $workoutIndex;
-        if (!isset($history[$index])) {
+        $workout = Ejercicio::where('user_id', Auth::id())->find((int) $workoutIndex);
+        if (!$workout) {
             return redirect()->to($this->trainingRegisterUrl($data))
                 ->with('workout_error', 'No se encontro el registro de entrenamiento para eliminar.');
         }
 
-        unset($history[$index]);
-        session(['workout_history' => array_values($history)]);
+        $workout->delete();
 
         return redirect()->to($this->trainingRegisterUrl($data))
             ->with('workout_success', 'Registro de entrenamiento eliminado.');
@@ -315,6 +280,79 @@ class ApiNinjaExerciseController extends Controller
         }
 
         return 'No se pudo consultar la API de ejercicios en este momento.';
+    }
+
+    private function workoutHistory(): array
+    {
+        $workouts = Ejercicio::with('items')
+            ->where('user_id', Auth::id())
+            ->orderBy('registered_at')
+            ->get();
+
+        $history = [];
+        foreach ($workouts as $workout) {
+            $items = array_map(fn (EjercicioItem $item): array => $this->workoutItemFromModel($item), $workout->items->all());
+
+            $history[$workout->id] = [
+                'registered_at' => optional($workout->registered_at ?? $workout->created_at)?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'),
+                'training_type' => $workout->tipo_entrene,
+                'notes' => $workout->notes,
+                'items' => $items,
+                'totals' => $this->cartTotals($items),
+            ];
+        }
+
+        return $history;
+    }
+
+    private function workoutItemFromModel(EjercicioItem $item): array
+    {
+        return [
+            'name' => $item->nombre,
+            'type' => $item->tipo,
+            'muscle' => $item->musculo,
+            'difficulty' => $item->dificultad,
+            'equipment' => $item->equipamiento,
+            'instructions' => $item->instrucciones,
+            'safety_info' => $item->safety_info,
+            'sets' => (int) $item->sets,
+            'reps' => (int) $item->reps,
+            'minutes' => (int) $item->minutes,
+        ];
+    }
+
+    private function persistWorkoutItems(Ejercicio $workout, array $items): void
+    {
+        $payload = array_map(function (array $item): array {
+            return [
+                'nombre' => (string) ($item['name'] ?? 'Ejercicio'),
+                'tipo' => $item['type'] ?? null,
+                'musculo' => $item['muscle'] ?? null,
+                'dificultad' => $item['difficulty'] ?? null,
+                'equipamiento' => $item['equipment'] ?? null,
+                'instrucciones' => $item['instructions'] ?? null,
+                'safety_info' => $item['safety_info'] ?? null,
+                'sets' => (int) ($item['sets'] ?? 0),
+                'reps' => (int) ($item['reps'] ?? 0),
+                'minutes' => (int) ($item['minutes'] ?? 0),
+            ];
+        }, $items);
+
+        $workout->items()->createMany($payload);
+    }
+
+    private function mergeNotes(?string $existingNotes, string $newNotes): ?string
+    {
+        $existingNotes = trim((string) $existingNotes);
+        if ($newNotes === '') {
+            return $existingNotes !== '' ? $existingNotes : null;
+        }
+
+        if ($existingNotes === '') {
+            return $newNotes;
+        }
+
+        return $existingNotes."\n".$newNotes;
     }
 
     private function cartItems(): array
@@ -352,16 +390,18 @@ class ApiNinjaExerciseController extends Controller
 
     private function itemKey(array $data): string
     {
-        return sha1(strtolower(trim((string) ($data['name'] ?? ''))).'|'.strtolower(trim((string) ($data['muscle'] ?? ''))).'|'.strtolower(trim((string) ($data['type'] ?? ''))));
+        return sha1(
+            strtolower(trim((string) ($data['name'] ?? ''))).'|'.
+            strtolower(trim((string) ($data['muscle'] ?? ''))).'|'.
+            strtolower(trim((string) ($data['type'] ?? '')))
+        );
     }
 
     private function trainingRegisterUrl(array $data): string
     {
         $params = [];
         foreach ([
-            'name_filter' => 'name',
             'muscle_filter' => 'muscle',
-            'type_filter' => 'type',
             'difficulty_filter' => 'difficulty',
             'page' => 'page',
         ] as $source => $target) {
@@ -374,21 +414,6 @@ class ApiNinjaExerciseController extends Controller
         $base = url('/entrenamiento/registrar');
 
         return !empty($params) ? $base.'?'.http_build_query($params) : $base;
-    }
-
-    private function translateFiltersToEnglish(array $filters): array
-    {
-        $translated = [];
-
-        foreach ($filters as $key => $value) {
-            if (!is_string($value) || trim($value) === '') {
-                continue;
-            }
-
-            $translated[$key] = $this->translator->translate($value, 'es', 'en') ?? $value;
-        }
-
-        return $translated;
     }
 
     private function normalizeTrainingType(string $trainingType): string
