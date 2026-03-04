@@ -13,3 +13,29 @@ document.querySelectorAll('.muscle-card input[type="radio"][name="muscle"]').for
         }
     });
 });
+
+const TRAINING_SCROLL_KEY = 'bb:training-scroll-to-results';
+
+document
+    .querySelectorAll('form.search-form[action$="/entrenamiento/registrar"]')
+    .forEach((form) => {
+        form.addEventListener('submit', () => {
+            const hasMuscleField = form.querySelector('[name="muscle"], [name="muscle_filter"]');
+            if (hasMuscleField) {
+                sessionStorage.setItem(TRAINING_SCROLL_KEY, '1');
+            }
+        });
+    });
+
+if (sessionStorage.getItem(TRAINING_SCROLL_KEY) === '1') {
+    sessionStorage.removeItem(TRAINING_SCROLL_KEY);
+    const resultsSection = document.getElementById('exercise-results');
+    if (resultsSection) {
+        window.setTimeout(() => {
+            resultsSection.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
+        }, 120);
+    }
+}

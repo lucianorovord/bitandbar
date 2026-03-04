@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
 
@@ -80,6 +81,7 @@ class ApiNinjaExerciseController extends Controller
             'sets' => ['nullable', 'integer', 'min:1', 'max:20'],
             'reps' => ['nullable', 'integer', 'min:1', 'max:100'],
             'minutes' => ['nullable', 'integer', 'min:0', 'max:300'],
+            'set_weights' => ['nullable', 'string', 'max:255'],
             'muscle_filter' => ['nullable', 'string', 'max:80'],
             'difficulty_filter' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
@@ -91,10 +93,18 @@ class ApiNinjaExerciseController extends Controller
             'sets' => (int) ($data['sets'] ?? 3),
             'reps' => (int) ($data['reps'] ?? 12),
             'minutes' => (int) ($data['minutes'] ?? 0),
+            'set_weights' => $this->normalizeSetWeights($data['set_weights'] ?? null, (int) ($data['sets'] ?? 3)),
         ];
 
         if (isset($cart[$itemKey])) {
-            $cart[$itemKey]['sets'] = min(20, ((int) $cart[$itemKey]['sets']) + $defaults['sets']);
+            $mergedSets = min(20, ((int) $cart[$itemKey]['sets']) + $defaults['sets']);
+            $existingSetWeights = $this->normalizeStoredSetWeights(
+                $cart[$itemKey]['set_weights'] ?? null,
+                (int) ($cart[$itemKey]['sets'] ?? 0)
+            );
+            $combinedSetWeights = array_slice(array_merge($existingSetWeights, $defaults['set_weights']), 0, $mergedSets);
+            $cart[$itemKey]['sets'] = $mergedSets;
+            $cart[$itemKey]['set_weights'] = $this->padSetWeights($combinedSetWeights, $mergedSets);
         } else {
             $cart[$itemKey] = [
                 'name' => $data['name'],
@@ -107,6 +117,7 @@ class ApiNinjaExerciseController extends Controller
                 'sets' => $defaults['sets'],
                 'reps' => $defaults['reps'],
                 'minutes' => $defaults['minutes'],
+                'set_weights' => $defaults['set_weights'],
             ];
         }
 
@@ -122,6 +133,7 @@ class ApiNinjaExerciseController extends Controller
             'sets' => ['required', 'integer', 'min:1', 'max:20'],
             'reps' => ['required', 'integer', 'min:1', 'max:100'],
             'minutes' => ['nullable', 'integer', 'min:0', 'max:300'],
+            'set_weights' => ['nullable', 'string', 'max:255'],
             'muscle_filter' => ['nullable', 'string', 'max:80'],
             'difficulty_filter' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
@@ -132,6 +144,10 @@ class ApiNinjaExerciseController extends Controller
             $cart[$itemKey]['sets'] = (int) $data['sets'];
             $cart[$itemKey]['reps'] = (int) $data['reps'];
             $cart[$itemKey]['minutes'] = (int) ($data['minutes'] ?? 0);
+            $cart[$itemKey]['set_weights'] = $this->normalizeSetWeights(
+                $data['set_weights'] ?? null,
+                (int) $data['sets']
+            );
             session(['workout_cart' => $cart]);
         }
 
@@ -318,6 +334,7 @@ class ApiNinjaExerciseController extends Controller
             'sets' => (int) $item->sets,
             'reps' => (int) $item->reps,
             'minutes' => (int) $item->minutes,
+            'set_weights' => $this->normalizeStoredSetWeights($item->set_weights, (int) $item->sets),
         ];
     }
 
@@ -335,6 +352,10 @@ class ApiNinjaExerciseController extends Controller
                 'sets' => (int) ($item['sets'] ?? 0),
                 'reps' => (int) ($item['reps'] ?? 0),
                 'minutes' => (int) ($item['minutes'] ?? 0),
+                'set_weights' => $this->normalizeStoredSetWeights(
+                    $item['set_weights'] ?? null,
+                    (int) ($item['sets'] ?? 0)
+                ),
             ];
         }, $items);
 
@@ -377,12 +398,13 @@ class ApiNinjaExerciseController extends Controller
             $sets = (int) ($item['sets'] ?? 0);
             $reps = (int) ($item['reps'] ?? 0);
             $minutes = (int) ($item['minutes'] ?? 0);
+            $setWeights = $this->normalizeStoredSetWeights($item['set_weights'] ?? null, $sets);
 
             $totals['exercises']++;
             $totals['sets'] += $sets;
             $totals['reps'] += $reps;
             $totals['minutes'] += $minutes;
-            $totals['volume'] += ($sets * $reps);
+            $totals['volume'] += $this->workoutVolumeForItem($sets, $reps, $setWeights);
         }
 
         return $totals;
@@ -444,14 +466,138 @@ class ApiNinjaExerciseController extends Controller
                 $merged[$key]['sets'] = (int) ($item['sets'] ?? 0);
                 $merged[$key]['reps'] = (int) ($item['reps'] ?? 0);
                 $merged[$key]['minutes'] = (int) ($item['minutes'] ?? 0);
+                $merged[$key]['set_weights'] = $this->normalizeStoredSetWeights(
+                    $item['set_weights'] ?? null,
+                    (int) ($item['sets'] ?? 0)
+                );
                 continue;
             }
+
+            $existingSets = (int) ($merged[$key]['sets'] ?? 0);
+            $existingSetWeights = $this->normalizeStoredSetWeights(
+                $merged[$key]['set_weights'] ?? null,
+                $existingSets
+            );
+            $incomingSetWeights = $this->normalizeStoredSetWeights(
+                $item['set_weights'] ?? null,
+                (int) ($item['sets'] ?? 0)
+            );
 
             $merged[$key]['sets'] += (int) ($item['sets'] ?? 0);
             $merged[$key]['reps'] += (int) ($item['reps'] ?? 0);
             $merged[$key]['minutes'] += (int) ($item['minutes'] ?? 0);
+            $merged[$key]['set_weights'] = $this->padSetWeights(
+                array_merge($existingSetWeights, $incomingSetWeights),
+                (int) ($merged[$key]['sets'] ?? 0)
+            );
         }
 
         return array_values($merged);
+    }
+
+    private function normalizeSetWeights(null|string $rawWeights, int $sets): array
+    {
+        if ($sets <= 0) {
+            return [];
+        }
+
+        if ($rawWeights === null || trim($rawWeights) === '') {
+            return array_fill(0, $sets, 0.0);
+        }
+
+        $tokens = preg_split('/\s*,\s*/', trim($rawWeights)) ?: [];
+        $weights = [];
+
+        foreach ($tokens as $token) {
+            if ($token === '') {
+                continue;
+            }
+
+            if (!is_numeric($token)) {
+                throw ValidationException::withMessages([
+                    'set_weights' => 'Los pesos por serie deben ser numeros separados por comas (ej: 10,15,20).',
+                ]);
+            }
+
+            $value = round((float) $token, 2);
+            if ($value < 0 || $value > 1000) {
+                throw ValidationException::withMessages([
+                    'set_weights' => 'Cada peso por serie debe estar entre 0 y 1000 kg.',
+                ]);
+            }
+
+            $weights[] = $value;
+        }
+
+        if (empty($weights)) {
+            return array_fill(0, $sets, 0.0);
+        }
+
+        if (count($weights) === 1 && $sets > 1) {
+            return array_fill(0, $sets, $weights[0]);
+        }
+
+        if (count($weights) !== $sets) {
+            throw ValidationException::withMessages([
+                'set_weights' => "Debes indicar exactamente {$sets} pesos (uno por serie) o un solo peso para todas las series.",
+            ]);
+        }
+
+        return $weights;
+    }
+
+    private function normalizeStoredSetWeights(mixed $rawWeights, int $sets): array
+    {
+        if ($sets <= 0) {
+            return [];
+        }
+
+        if (!is_array($rawWeights)) {
+            return array_fill(0, $sets, 0.0);
+        }
+
+        $weights = array_values(array_map(
+            fn ($value): float => max(0, round((float) $value, 2)),
+            $rawWeights
+        ));
+
+        return $this->padSetWeights($weights, $sets);
+    }
+
+    private function padSetWeights(array $weights, int $sets): array
+    {
+        if ($sets <= 0) {
+            return [];
+        }
+
+        $weights = array_values(array_map(fn ($value): float => round((float) $value, 2), $weights));
+        if (empty($weights)) {
+            return array_fill(0, $sets, 0.0);
+        }
+
+        $weights = array_slice($weights, 0, $sets);
+        $filler = $weights[array_key_last($weights)] ?? 0.0;
+
+        while (count($weights) < $sets) {
+            $weights[] = $filler;
+        }
+
+        return $weights;
+    }
+
+    private function workoutVolumeForItem(int $sets, int $reps, array $setWeights): float
+    {
+        if ($sets <= 0 || $reps <= 0) {
+            return 0.0;
+        }
+
+        $effectiveWeights = $this->normalizeStoredSetWeights($setWeights, $sets);
+        $sumWeights = array_sum($effectiveWeights);
+
+        if ($sumWeights > 0) {
+            return round($sumWeights * $reps, 2);
+        }
+
+        return (float) ($sets * $reps);
     }
 }

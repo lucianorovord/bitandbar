@@ -19,6 +19,7 @@ class EjercicioItem extends Model
         'sets',
         'reps',
         'minutes',
+        'set_weights',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class EjercicioItem extends Model
             'sets' => 'integer',
             'reps' => 'integer',
             'minutes' => 'integer',
+            'set_weights' => 'array',
         ];
     }
 

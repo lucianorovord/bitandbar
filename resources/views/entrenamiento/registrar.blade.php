@@ -69,6 +69,9 @@
         @if(!empty($error))
             <p class="form-error">{{ $error }}</p>
         @endif
+        @if($errors->has('set_weights'))
+            <p class="form-error">{{ $errors->first('set_weights') }}</p>
+        @endif
         @if(session('workout_success'))
             <p class="form-success">{{ session('workout_success') }}</p>
         @endif
@@ -87,6 +90,7 @@
                             <th>Ejercicio</th>
                             <th>Series</th>
                             <th>Reps</th>
+                            <th>Pesos por serie (kg)</th>
                             <th>Minutos</th>
                             <th>Volumen</th>
                             <th>Accion</th>
@@ -94,12 +98,26 @@
                     </thead>
                     <tbody>
                         @foreach($workout_cart as $itemKey => $item)
+                            @php
+                                $setWeights = array_values(array_map(
+                                    fn ($value) => round((float) $value, 2),
+                                    is_array($item['set_weights'] ?? null) ? $item['set_weights'] : []
+                                ));
+                                $setWeightLabel = !empty($setWeights)
+                                    ? implode(', ', array_map(fn ($value) => rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.'), $setWeights))
+                                    : '-';
+                                $sumWeights = array_sum($setWeights);
+                                $rowVolume = $sumWeights > 0
+                                    ? $sumWeights * (int) ($item['reps'] ?? 0)
+                                    : (int) ($item['sets'] ?? 0) * (int) ($item['reps'] ?? 0);
+                            @endphp
                             <tr>
                                 <td>{{ $item['name'] }}</td>
                                 <td>{{ $item['sets'] ?? 0 }}</td>
                                 <td>{{ $item['reps'] ?? 0 }}</td>
+                                <td>{{ $setWeightLabel }}</td>
                                 <td>{{ $item['minutes'] ?? 0 }}</td>
-                                <td>{{ (int) ($item['sets'] ?? 0) * (int) ($item['reps'] ?? 0) }}</td>
+                                <td>{{ $rowVolume }}</td>
                                 <td>
                                     <form method="POST" action="{{ url('/entrenamiento/carrito/actualizar/'.$itemKey) }}" class="inline-form">
                                         @csrf
@@ -108,6 +126,7 @@
                                         <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
                                         <input type="number" name="sets" min="1" max="20" value="{{ $item['sets'] ?? 3 }}">
                                         <input type="number" name="reps" min="1" max="100" value="{{ $item['reps'] ?? 12 }}">
+                                        <input type="text" name="set_weights" value="{{ $setWeightLabel !== '-' ? $setWeightLabel : '' }}" placeholder="10,15,20">
                                         <input type="number" name="minutes" min="0" max="300" value="{{ $item['minutes'] ?? 0 }}">
                                         <button type="submit" class="mini-btn">Actualizar</button>
                                     </form>
@@ -164,7 +183,7 @@
     </section>
 
     @if($exercises->count() > 0)
-        <section class="results-panel">
+        <section class="results-panel" id="exercise-results">
             <h3>Ejercicios del grupo muscular seleccionado</h3>
             <div class="exercise-grid">
                 @foreach($exercises as $exercise)
@@ -205,6 +224,10 @@
                                     <div class="exercise-input-group">
                                         <h6>Repeticiones</h6>
                                         <input type="number" name="reps" min="1" max="100" value="12">
+                                    </div>
+                                    <div class="exercise-input-group">
+                                        <h6>Peso por serie (kg)</h6>
+                                        <input type="text" name="set_weights" placeholder="10,15,20">
                                     </div>
                                     <div class="exercise-input-group">
                                         <h6>Minutos</h6>
@@ -298,16 +321,31 @@
                                         <th>Ejercicio</th>
                                         <th>Series</th>
                                         <th>Reps</th>
+                                        <th>Pesos por serie (kg)</th>
                                         <th>Volumen</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach(($workout['items'] ?? []) as $item)
+                                        @php
+                                            $historySetWeights = array_values(array_map(
+                                                fn ($value) => round((float) $value, 2),
+                                                is_array($item['set_weights'] ?? null) ? $item['set_weights'] : []
+                                            ));
+                                            $historyWeightLabel = !empty($historySetWeights)
+                                                ? implode(', ', array_map(fn ($value) => rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.'), $historySetWeights))
+                                                : '-';
+                                            $historySumWeights = array_sum($historySetWeights);
+                                            $historyVolume = $historySumWeights > 0
+                                                ? $historySumWeights * (int) ($item['reps'] ?? 0)
+                                                : (int) ($item['sets'] ?? 0) * (int) ($item['reps'] ?? 0);
+                                        @endphp
                                         <tr>
                                             <td>{{ $item['name'] ?? 'Ejercicio' }}</td>
                                             <td>{{ $item['sets'] ?? 0 }}</td>
                                             <td>{{ $item['reps'] ?? 0 }}</td>
-                                            <td>{{ (int) ($item['sets'] ?? 0) * (int) ($item['reps'] ?? 0) }}</td>
+                                            <td>{{ $historyWeightLabel }}</td>
+                                            <td>{{ $historyVolume }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

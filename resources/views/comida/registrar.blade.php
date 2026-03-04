@@ -134,7 +134,7 @@
                             <th>Proteina</th>
                             <th>Carbohidratos</th>
                             <th>Grasa</th>
-                            <th>Accion</th>
+                            <th>Cantidad (x porcion)</th>
                         </tr>
                     </thead>
                     <tbody>

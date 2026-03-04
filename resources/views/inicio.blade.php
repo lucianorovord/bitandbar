@@ -2,6 +2,7 @@
 @section('title','Inicio')
 @section('contenido')
     @vite('resources/sass/inicio.scss')
+    @vite('resources/js/inicio/inicio.js')
     <section class="hero">
         <p class="hero__kicker">Nutricion y entrenamiento personalizado</p>
         <h2 class="hero__title">Bit & Bar: mejora tu salud con datos y constancia</h2>
@@ -14,13 +15,15 @@
     <section class="home-highlight home-highlight--banner" aria-label="Resumen visual de la plataforma">
         <div class="home-highlight__overlay">
             <h3>Tu plan saludable en un solo panel</h3>
-            <p>Placeholder de imagen de fondo. Aqui puedes colocar una foto motivacional de gimnasio o comida saludable.</p>
+            <img src="{{asset('images/inicio/gym_motivation')}}" alt="">
         </div>
     </section>
 
     <section class="home-feature home-feature--food" aria-label="Registro de comidas">
         <div class="home-feature__media">
-            <div class="home-feature__media-placeholder">Imagen registro de comidas</div>
+            <div class="home-feature__media-placeholder">
+                <img src="{{asset('images/inicio/comidas.jpeg')}}" alt="comidas orientales">
+            </div>
         </div>
         <div class="home-feature__content">
             <h3>Registro de comidas</h3>
@@ -97,11 +100,21 @@
                                         @endif
                                         <ul>
                                             @foreach(($workout['items'] ?? []) as $item)
+                                                @php
+                                                    $homeSetWeights = array_values(array_map(
+                                                        fn ($value) => round((float) $value, 2),
+                                                        is_array($item['set_weights'] ?? null) ? $item['set_weights'] : []
+                                                    ));
+                                                    $homeSumWeights = array_sum($homeSetWeights);
+                                                    $homeVolume = $homeSumWeights > 0
+                                                        ? $homeSumWeights * (int) ($item['reps'] ?? 0)
+                                                        : (int) ($item['sets'] ?? 0) * (int) ($item['reps'] ?? 0);
+                                                @endphp
                                                 <li>
                                                     {{ $item['name'] ?? 'Ejercicio' }} -
                                                     S {{ $item['sets'] ?? 0 }},
                                                     R {{ $item['reps'] ?? 0 }},
-                                                    V {{ (int) ($item['sets'] ?? 0) * (int) ($item['reps'] ?? 0) }}
+                                                    V {{ $homeVolume }}
                                                 </li>
                                             @endforeach
                                         </ul>
@@ -113,8 +126,8 @@
                 </section>
             @endauth
         </div>
-        <div class="home-feature__media">
-            <div class="home-feature__media-placeholder"><img src="{{asset('/images/muscles/biceps.png')}}" alt="shoulders"> </div>
+        <div class="home-feature__media2">
+            <div class="home-feature__media-placeholder"><img src="{{asset('images/inicio/jpeg')}}" alt="gym image"> </div>
         </div>
     </section>
 @guest
