@@ -6,6 +6,7 @@ use App\Http\Requests\ApiNinjaExerciseSearchRequest;
 use App\Models\Ejercicio;
 use App\Models\EjercicioItem;
 use App\Services\ApiNinjaExerciseService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -65,6 +66,7 @@ class ApiNinjaExerciseController extends Controller
             'workout_cart' => $this->cartItems(),
             'workout_totals' => $this->cartTotals(),
             'workout_history' => $this->workoutHistory(),
+            'today_date' => now()->toDateString(),
         ]);
     }
 
@@ -190,6 +192,7 @@ class ApiNinjaExerciseController extends Controller
         $data = $request->validate([
             'training_type' => ['required', 'string', 'max:60'],
             'notes' => ['nullable', 'string', 'max:600'],
+            'registered_at' => ['required', 'date_format:Y-m-d'],
             'muscle_filter' => ['nullable', 'string', 'max:80'],
             'difficulty_filter' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
@@ -204,10 +207,21 @@ class ApiNinjaExerciseController extends Controller
         $userId = (int) Auth::id();
         $trainingType = $this->normalizeTrainingType((string) $data['training_type']);
         $newNotes = trim((string) ($data['notes'] ?? ''));
+        $registeredAt = Carbon::createFromFormat('Y-m-d', (string) $data['registered_at'])
+            ->setTimeFrom(now());
 
         $workout = Ejercicio::with('items')
             ->where('user_id', $userId)
             ->where('tipo_entrene', $trainingType)
+            ->where(function ($query) use ($registeredAt): void {
+                $query
+                    ->whereDate('registered_at', $registeredAt->toDateString())
+                    ->orWhere(function ($subQuery) use ($registeredAt): void {
+                        $subQuery
+                            ->whereNull('registered_at')
+                            ->whereDate('created_at', $registeredAt->toDateString());
+                    });
+            })
             ->first();
 
         if ($workout) {
@@ -218,7 +232,7 @@ class ApiNinjaExerciseController extends Controller
             $mergedItems = $this->mergeWorkoutItems($existingItems, array_values($cart));
 
             $workout->notes = $this->mergeNotes($workout->notes, $newNotes);
-            $workout->registered_at = now();
+            $workout->registered_at = $registeredAt;
             $workout->save();
 
             $workout->items()->delete();
@@ -228,7 +242,7 @@ class ApiNinjaExerciseController extends Controller
                 'user_id' => $userId,
                 'tipo_entrene' => $trainingType,
                 'notes' => $newNotes !== '' ? $newNotes : null,
-                'registered_at' => now(),
+                'registered_at' => $registeredAt,
             ]);
 
             $this->persistWorkoutItems($workout, array_values($cart));

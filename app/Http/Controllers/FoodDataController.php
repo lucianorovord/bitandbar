@@ -7,6 +7,7 @@ use App\Models\Comida;
 use App\Models\ComidaItem;
 use App\Services\FoodDataService;
 use App\Services\TextTranslationService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,6 +46,7 @@ class FoodDataController extends Controller
             'cart' => $this->cartItems(),
             'cart_totals' => $this->cartTotals(),
             'meal_history' => $this->mealHistory(),
+            'today_date' => now()->toDateString(),
         ]);
     }
 
@@ -182,6 +184,7 @@ class FoodDataController extends Controller
         $data = $request->validate([
             'meal_type' => ['required', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:600'],
+            'registered_at' => ['required', 'date_format:Y-m-d'],
             'q' => ['nullable', 'string', 'max:80'],
         ]);
 
@@ -193,12 +196,24 @@ class FoodDataController extends Controller
 
         $mealType = $this->normalizeMealType((string) $data['meal_type']);
         $newNotes = trim((string) ($data['notes'] ?? ''));
+        $registeredAt = Carbon::createFromFormat('Y-m-d', (string) $data['registered_at'])
+            ->setTimeFrom(now());
+        $registeredDate = $registeredAt->toDateString();
 
         if (Auth::check()) {
             $userId = (int) Auth::id();
             $meal = Comida::with('items')
                 ->where('user_id', $userId)
                 ->where('tipo_comida', $mealType)
+                ->where(function ($query) use ($registeredDate): void {
+                    $query
+                        ->whereDate('registered_at', $registeredDate)
+                        ->orWhere(function ($subQuery) use ($registeredDate): void {
+                            $subQuery
+                                ->whereNull('registered_at')
+                                ->whereDate('created_at', $registeredDate);
+                        });
+                })
                 ->first();
 
             if ($meal) {
@@ -209,7 +224,7 @@ class FoodDataController extends Controller
                 $mergedItems = $this->mergeMealItems($existingItems, array_values($cart));
 
                 $meal->notes = $this->mergeNotes($meal->notes, $newNotes);
-                $meal->registered_at = now();
+                $meal->registered_at = $registeredAt;
                 $meal->save();
 
                 $meal->items()->delete();
@@ -219,7 +234,7 @@ class FoodDataController extends Controller
                     'user_id' => $userId,
                     'tipo_comida' => $mealType,
                     'notes' => $newNotes !== '' ? $newNotes : null,
-                    'registered_at' => now(),
+                    'registered_at' => $registeredAt,
                 ]);
 
                 $this->persistMealItems($meal, array_values($cart));
@@ -237,7 +252,8 @@ class FoodDataController extends Controller
 
         foreach ($history as $index => $meal) {
             $existingType = $this->normalizeMealType((string) ($meal['meal_type'] ?? ''));
-            if ($existingType === $mealType) {
+            $existingDate = $this->sessionHistoryDateKey((string) ($meal['registered_at'] ?? ''));
+            if ($existingType === $mealType && $existingDate === $registeredDate) {
                 $existingIndex = $index;
                 break;
             }
@@ -256,10 +272,10 @@ class FoodDataController extends Controller
             $history[$existingIndex]['totals'] = $this->cartTotals($mergedItems);
             $history[$existingIndex]['notes'] = $mergedNotes;
             $history[$existingIndex]['meal_type'] = $mealType;
-            $history[$existingIndex]['registered_at'] = now()->format('d/m/Y H:i');
+            $history[$existingIndex]['registered_at'] = $registeredAt->format('d/m/Y H:i');
         } else {
             $history[] = [
-                'registered_at' => now()->format('d/m/Y H:i'),
+                'registered_at' => $registeredAt->format('d/m/Y H:i'),
                 'meal_type' => $mealType,
                 'notes' => $newNotes !== '' ? $newNotes : null,
                 'items' => array_values($cart),
@@ -430,6 +446,22 @@ class FoodDataController extends Controller
         $query = trim((string) $query);
 
         return $query !== '' ? $base.'?q='.urlencode($query) : $base;
+    }
+
+    private function sessionHistoryDateKey(string $registeredAt): ?string
+    {
+        $registeredAt = trim($registeredAt);
+        if ($registeredAt === '') {
+            return null;
+        }
+
+        try {
+            $parsed = Carbon::createFromFormat('d/m/Y H:i', $registeredAt);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $parsed instanceof Carbon ? $parsed->toDateString() : null;
     }
 
     private function cartItems(): array

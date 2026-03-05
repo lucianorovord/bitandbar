@@ -2,6 +2,11 @@
 @section('title','Registrar comida')
 @section('contenido')
     @vite('resources/sass/comidas/comidas.scss')
+    @if(session('food_success'))
+        <section class="top-success-alert" role="status" aria-live="polite">
+            {{ session('food_success') }}
+        </section>
+    @endif
     <section class="hero">
         <p class="hero__kicker">Nutricion</p>
         <h2 class="hero__title">Registrar comida</h2>
@@ -30,12 +35,12 @@
                 <p class="form-error">{{ $error }}</p>
             @endif
         </form>
-        @if(session('food_success'))
-            <p class="form-success">{{ session('food_success') }}</p>
-        @endif
         @if(session('food_error'))
             <p class="form-error">{{ session('food_error') }}</p>
         @endif
+        @error('registered_at')
+            <p class="form-error">{{ $message }}</p>
+        @enderror
     </section>
 
     <section class="results-panel">
@@ -79,7 +84,7 @@
                                     <form method="POST" action="{{ url('/comida/carrito/eliminar/'.$itemKey) }}">
                                         @csrf
                                         <input type="hidden" name="q" value="{{ $query }}">
-                                        <button type="submit" class="mini-btn mini-btn--danger">Quitar</button>
+                                        <button type="submit" class="mini-btn mini-btn--danger" aria-label="Eliminar fila" title="Eliminar fila">X</button>
                                     </form>
                                 </td>
                             </tr>
@@ -106,6 +111,12 @@
                         <option value="cena">Cena</option>
                         <option value="snacks">Snacks</option>
                     </select>
+                    <input
+                        type="date"
+                        name="registered_at"
+                        value="{{ old('registered_at', $today_date ?? now()->toDateString()) }}"
+                        required
+                    >
                     <input type="text" name="notes" placeholder="Notas opcionales (ej: post-entreno)">
                     <button type="submit" class="hero__cta">Registrar comida</button>
                 </div>

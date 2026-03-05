@@ -6,6 +6,7 @@
         @auth
             <a class="site-nav__link" href="{{ url('/comida/registrar') }}">Registrar comida</a>
             <a class="site-nav__link" href="{{ url('/entrenamiento/registrar') }}">Registrar entrenamiento</a>
+            <a class="site-nav__link" href="{{ url('/historial') }}">Historial</a>
 
             <details class="profile-menu">
                 <summary class="site-nav__link profile-menu__trigger">{{ Auth::user()->name }}</summary>

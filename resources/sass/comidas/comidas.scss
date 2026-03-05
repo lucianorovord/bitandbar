@@ -86,15 +86,20 @@ header {
     display: none;
 }
 
+.profile-menu__trigger::marker {
+    content: "";
+}
+
 .profile-menu__dropdown {
     position: absolute;
-    top: calc(100% + 0.2rem);
-    right: 0;
-    left: auto;
+    top: 0;
+    left: calc(100% + 0.45rem);
+    right: auto;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-4px);
-    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+    pointer-events: none;
+    transform: translateX(-10px) scale(0.98);
+    transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
     z-index: 20;
     display: flex;
     flex-direction: column;
@@ -104,7 +109,8 @@ header {
 .profile-menu[open] .profile-menu__dropdown {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    pointer-events: auto;
+    transform: translateX(0) scale(1);
 }
 
 .profile-menu__item {
@@ -122,6 +128,17 @@ main {
     width: min(1100px, 92%);
     margin: 0 auto;
     padding: 1.2rem 0 3rem;
+}
+
+.top-success-alert {
+    margin: 0 0 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(70, 200, 110, 0.95);
+    background: rgba(38, 145, 74, 0.88);
+    color: #f1fff4;
+    font-weight: 600;
+    box-shadow: 0 10px 20px rgba(18, 82, 40, 0.35);
 }
 
 .hero {

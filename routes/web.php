@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ApiNinjaExerciseController;
 use App\Http\Controllers\FoodDataController;
+use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SpoonacularController;
 use App\Models\Comida;
@@ -42,6 +43,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/entrenamiento/registro/eliminar/{workoutIndex}', [ApiNinjaExerciseController::class, 'deleteWorkoutRecord']);
 
     Route::post('/recipes/search-by-ingredients', [SpoonacularController::class, 'searchByIngredients'])->middleware('throttle:recipes-search');
+    Route::get('/historial', [HistorialController::class, 'index']);
+    Route::get('/historial/calendar-data', [HistorialController::class, 'calendarData']);
     Route::get('/recipes/{recipeId}/nutrition-details', [SpoonacularController::class, 'nutritionDetails'])->middleware('throttle:recipes-search');
 });
 

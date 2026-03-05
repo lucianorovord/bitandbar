@@ -3,6 +3,11 @@
 @section('contenido')
     @vite('resources/sass/entrenamientos/entrenamiento.scss')
     @vite('resources/js/entrenamiento/registrar.js')
+    @if(session('workout_success'))
+        <section class="top-success-alert" role="status" aria-live="polite">
+            {{ session('workout_success') }}
+        </section>
+    @endif
     <section class="hero">
         <p class="hero__kicker">Deporte</p>
         <h2 class="hero__title">Registrar entrenamiento</h2>
@@ -72,12 +77,12 @@
         @if($errors->has('set_weights'))
             <p class="form-error">{{ $errors->first('set_weights') }}</p>
         @endif
-        @if(session('workout_success'))
-            <p class="form-success">{{ session('workout_success') }}</p>
-        @endif
         @if(session('workout_error'))
             <p class="form-error">{{ session('workout_error') }}</p>
         @endif
+        @error('registered_at')
+            <p class="form-error">{{ $message }}</p>
+        @enderror
     </section>
 
     <section class="results-panel">
@@ -135,7 +140,7 @@
                                         <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
                                         <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
                                         <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
-                                        <button type="submit" class="mini-btn mini-btn--danger">Quitar</button>
+                                        <button type="submit" class="mini-btn mini-btn--danger" aria-label="Eliminar fila" title="Eliminar fila">X</button>
                                     </form>
                                 </td>
                             </tr>
@@ -162,6 +167,12 @@
                         <option value="movilidad">Movilidad</option>
                         <option value="hiit">HIIT</option>
                     </select>
+                    <input
+                        type="date"
+                        name="registered_at"
+                        value="{{ old('registered_at', $today_date ?? now()->toDateString()) }}"
+                        required
+                    >
                     <input type="text" name="notes" placeholder="Notas (ej: foco en tecnica)">
                     <button type="submit" class="hero__cta">Registrar entrenamiento</button>
                 </div>

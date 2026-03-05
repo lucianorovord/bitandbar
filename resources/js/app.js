@@ -483,6 +483,7 @@ function installPageTransitionLoader() {
     document.addEventListener('click', (event) => {
         const anchor = event.target.closest('a[href]');
         if (!anchor || isNavigating || !isPlainLeftClick(event)) return;
+        if (anchor.dataset.loaderIgnore === '1') return;
 
         const href = anchor.getAttribute('href');
         if (!href || href.startsWith('#') || anchor.target === '_blank' || anchor.hasAttribute('download')) return;

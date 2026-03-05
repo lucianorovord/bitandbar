@@ -1,0 +1,402 @@
+$bg: #0d0d0d;
+$surface: #171717;
+$text: #f5f5f5;
+$muted: #b5b5b5;
+$accent: #ffd100;
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Poppins", sans-serif;
+    color: $text;
+    background:
+        radial-gradient(circle at top right, rgba(255, 209, 0, 0.15), transparent 42%),
+        linear-gradient(160deg, #050505 0%, $bg 55%, #1b1b1b 100%);
+}
+
+header {
+    width: 100%;
+    margin: 0;
+    padding: 1.5rem 0 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(13, 13, 13, 0.88);
+}
+
+.site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    width: min(1100px, 92%);
+    margin: 0 auto;
+}
+
+.site-header h1 {
+    margin: 0;
+    font-size: clamp(1.4rem, 2vw, 1.8rem);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: $accent;
+    text-transform: uppercase;
+}
+
+.site-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.site-nav__link {
+    color: $text;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 209, 0, 0.3);
+    background: rgba(255, 209, 0, 0.08);
+}
+
+.profile-menu {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.profile-menu__trigger {
+    list-style: none;
+    cursor: pointer;
+}
+
+.profile-menu__trigger::-webkit-details-marker {
+    display: none;
+}
+
+.profile-menu__trigger::marker {
+    content: "";
+}
+
+.profile-menu__dropdown {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 0.45rem);
+    right: auto;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-10px) scale(0.98);
+    transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.profile-menu[open] .profile-menu__dropdown {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0) scale(1);
+}
+
+.profile-menu__item {
+    width: max-content;
+    min-width: 140px;
+    text-align: center;
+}
+
+.profile-menu__logout {
+    border: 1px solid rgba(255, 209, 0, 0.3);
+    background: rgba(255, 209, 0, 0.08);
+}
+
+main {
+    width: min(1100px, 92%);
+    margin: 0 auto;
+    padding: 1.2rem 0 3rem;
+}
+
+.historial-hero {
+    background: linear-gradient(145deg, rgba(255, 209, 0, 0.08), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 209, 0, 0.28);
+    border-radius: 20px;
+    padding: clamp(1.2rem, 3vw, 2.2rem);
+}
+
+.hero__kicker {
+    margin: 0 0 0.8rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $accent;
+}
+
+.hero__title {
+    margin: 0;
+    font-size: clamp(1.7rem, 4vw, 2.4rem);
+}
+
+.hero__text {
+    margin: 0.8rem 0 0;
+    color: $muted;
+}
+
+.historial-panel {
+    margin-top: 1rem;
+    background: linear-gradient(165deg, rgba(23, 23, 23, 0.98), rgba(14, 14, 14, 0.96));
+    border: 1px solid rgba(255, 209, 0, 0.2);
+    border-radius: 16px;
+    padding: 1rem 1rem 1.15rem;
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
+}
+
+.historial-panel--loading {
+    opacity: 0.75;
+    transition: opacity 0.2s ease;
+}
+
+.historial-calendar__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.historial-calendar__header h3 {
+    margin: 0;
+    color: $accent;
+    min-width: 190px;
+    text-align: center;
+    font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+}
+
+.mini-btn {
+    border: 1px solid rgba(255, 209, 0, 0.4);
+    background: rgba(255, 209, 0, 0.1);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.82rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.18s ease, background-color 0.18s ease, opacity 0.18s ease;
+}
+
+.mini-btn:hover {
+    background: rgba(255, 209, 0, 0.22);
+    transform: translateY(-1px);
+}
+
+.mini-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+    transform: none;
+}
+
+.historial-legend {
+    margin-top: 0.9rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    color: $muted;
+    font-size: 0.9rem;
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.35rem;
+    vertical-align: -1px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.legend-dot--green { background: rgba(90, 200, 120, 0.65); }
+.legend-dot--yellow { background: rgba(245, 194, 66, 0.65); }
+.legend-dot--workout { background: rgba(22, 122, 140, 0.75); }
+.legend-dot--none { background: rgba(255, 255, 255, 0.08); }
+
+.historial-calendar {
+    margin-top: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 0.8rem;
+}
+
+.historial-calendar__weekdays,
+.historial-calendar__week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.historial-calendar__weekdays div {
+    text-align: center;
+    color: $accent;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.historial-calendar__week {
+    margin-top: 0.4rem;
+}
+
+.historial-day {
+    min-height: 74px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.45rem;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.historial-day--workout {
+    border-color: rgba(32, 160, 181, 0.78);
+    box-shadow: inset 0 -14px 0 rgba(7, 82, 94, 0.34);
+}
+
+.historial-day--clickable {
+    cursor: pointer;
+}
+
+.historial-day:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.historial-day--selected {
+    border-color: rgba(255, 255, 255, 0.92);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.55),
+        0 0 18px rgba(255, 255, 255, 0.2);
+}
+
+.historial-day--green {
+    background: rgba(90, 200, 120, 0.24);
+    border-color: rgba(90, 200, 120, 0.6);
+}
+
+.historial-day--yellow {
+    background: rgba(245, 194, 66, 0.24);
+    border-color: rgba(245, 194, 66, 0.6);
+}
+
+.historial-day--none {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.historial-day--muted {
+    opacity: 0.38;
+}
+
+.historial-day__number {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.historial-day--today {
+    border-color: rgba(255, 255, 255, 0.88);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.6),
+        0 0 16px rgba(255, 255, 255, 0.38),
+        inset 0 0 10px rgba(255, 255, 255, 0.16);
+}
+
+.historial-shortcuts {
+    margin: 0.85rem 0 0;
+    color: $muted;
+    font-size: 0.82rem;
+}
+
+.historial-shortcuts kbd {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 0.08rem 0.35rem;
+    font-family: inherit;
+    font-size: 0.78rem;
+}
+
+.historial-day-details {
+    margin-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    padding-top: 0.9rem;
+}
+
+.historial-day-details h4 {
+    margin: 0 0 0.65rem;
+    color: #fff;
+}
+
+.historial-day-details__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.historial-day-details__title {
+    margin: 0 0 0.5rem;
+    color: $accent;
+}
+
+.day-record {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.55rem 0.65rem;
+    margin-bottom: 0.55rem;
+}
+
+.day-record h5 {
+    margin: 0;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.day-record p {
+    margin: 0.35rem 0 0;
+    color: $muted;
+    font-size: 0.85rem;
+}
+
+.day-record ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1rem;
+    color: #f1f1f1;
+    font-size: 0.84rem;
+}
+
+.day-record--meal {
+    border-color: rgba(245, 194, 66, 0.38);
+}
+
+.day-record--workout {
+    border-color: rgba(32, 160, 181, 0.4);
+}
+
+.day-empty {
+    margin: 0;
+    color: $muted;
+    font-size: 0.88rem;
+}
+
+@media (max-width: 700px) {
+    .historial-day {
+        min-height: 54px;
+        padding: 0.35rem;
+    }
+
+    .historial-day-details__grid {
+        grid-template-columns: 1fr;
+    }
+}
