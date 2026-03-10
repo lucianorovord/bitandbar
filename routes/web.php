@@ -108,9 +108,19 @@ Route::get('/', function () {
 
     if (Auth::check()) {
         $userId = (int) Auth::id();
+        $todayDate = now()->toDateString();
 
         $meals = Comida::with('items')
             ->where('user_id', $userId)
+            ->where(function ($query) use ($todayDate): void {
+                $query
+                    ->whereDate('registered_at', $todayDate)
+                    ->orWhere(function ($subQuery) use ($todayDate): void {
+                        $subQuery
+                            ->whereNull('registered_at')
+                            ->whereDate('created_at', $todayDate);
+                    });
+            })
             ->orderBy('registered_at')
             ->get();
 
@@ -144,6 +154,15 @@ Route::get('/', function () {
 
         $workouts = Ejercicio::with('items')
             ->where('user_id', $userId)
+            ->where(function ($query) use ($todayDate): void {
+                $query
+                    ->whereDate('registered_at', $todayDate)
+                    ->orWhere(function ($subQuery) use ($todayDate): void {
+                        $subQuery
+                            ->whereNull('registered_at')
+                            ->whereDate('created_at', $todayDate);
+                    });
+            })
             ->orderBy('registered_at')
             ->get();
 
