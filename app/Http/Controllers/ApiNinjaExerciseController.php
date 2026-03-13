@@ -3,22 +3,154 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ApiNinjaExerciseSearchRequest;
+use App\Models\Exercise;
 use App\Models\Ejercicio;
 use App\Models\EjercicioItem;
 use App\Services\ApiNinjaExerciseService;
+use App\Services\TextTranslationService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
 
 class ApiNinjaExerciseController extends Controller
 {
-    public function __construct(private ApiNinjaExerciseService $exerciseService)
+    public function __construct(
+        private ApiNinjaExerciseService $exerciseService,
+        private TextTranslationService $translator
+    )
     {
+    }
+
+    public function hub(): View
+    {
+        $latest = Ejercicio::with('items')
+            ->where('user_id', Auth::id())
+            ->orderByDesc('registered_at')
+            ->orderByDesc('created_at')
+            ->limit(3)
+            ->get()
+            ->map(function (Ejercicio $workout): array {
+                $items = array_map(
+                    fn (EjercicioItem $item): array => $this->workoutItemFromModel($item),
+                    $workout->items->all()
+                );
+
+                return [
+                    'training_type' => $workout->tipo_entrene,
+                    'registered_at' => optional($workout->registered_at ?? $workout->created_at)?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'),
+                    'totals' => $this->cartTotals($items),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return view('entrenamiento.hub', [
+            'latest_workouts' => $latest,
+        ]);
+    }
+
+    public function templates(): View
+    {
+        return view('entrenamiento.templates');
+    }
+
+    public function exerciseLookup(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:30'],
+        ]);
+
+        $query = trim((string) ($data['q'] ?? ''));
+        $page = max(1, (int) ($data['page'] ?? 1));
+        $perPage = max(1, min(30, (int) ($data['per_page'] ?? 20)));
+
+        if (Exercise::query()->count() === 0) {
+            try {
+                if ($query === '') {
+                    $result = $this->exerciseService->searchPaged([], $page, $perPage);
+                    return response()->json([
+                        'items' => array_map(fn (array $item): array => $this->compactExerciseForPicker($item), $result['items'] ?? []),
+                        'total' => (int) ($result['total'] ?? 0),
+                        'page' => $page,
+                        'needs_sync' => true,
+                    ]);
+                }
+
+                $queries = [$query];
+                $translated = trim((string) ($this->translator->translate($query, 'es', 'en') ?? ''));
+                if ($translated !== '' && !in_array(mb_strtolower($translated), array_map(fn ($value) => mb_strtolower($value), $queries), true)) {
+                    $queries[] = $translated;
+                }
+
+                $merged = [];
+                foreach ($queries as $nameQuery) {
+                    $result = $this->exerciseService->searchPaged(['name' => $nameQuery], 1, $perPage);
+                    foreach (($result['items'] ?? []) as $item) {
+                        $key = $this->itemKey($item);
+                        $merged[$key] = $item;
+                    }
+                }
+
+                return response()->json([
+                    'items' => array_map(
+                        fn (array $item): array => $this->compactExerciseForPicker($item),
+                        array_values($merged)
+                    ),
+                    'total' => count($merged),
+                    'page' => 1,
+                    'needs_sync' => true,
+                ]);
+            } catch (Throwable $exception) {
+                report($exception);
+                return response()->json([
+                    'items' => [],
+                    'total' => 0,
+                    'page' => $page,
+                    'error' => $this->friendlyApiError($exception->getMessage()),
+                    'needs_sync' => true,
+                ], 500);
+            }
+        }
+
+        $paginator = Exercise::query()
+            ->when($query !== '', function ($builder) use ($query): void {
+                $builder->where(function ($inner) use ($query): void {
+                    $inner
+                        ->where('name_es', 'like', "%{$query}%")
+                        ->orWhere('name', 'like', "%{$query}%")
+                        ->orWhere('muscle_es', 'like', "%{$query}%")
+                        ->orWhere('muscle', 'like', "%{$query}%");
+                });
+            })
+            ->paginate(perPage: $perPage, page: $page);
+
+        return response()->json([
+            'items' => $paginator->getCollection()->map(fn (Exercise $exercise): array => $exercise->toPickerArray())->all(),
+            'total' => $paginator->total(),
+            'page' => $paginator->currentPage(),
+        ]);
+    }
+
+    public function exerciseDetail(string $apiKey): JsonResponse
+    {
+        $exercise = Exercise::query()->where('api_key', $apiKey)->first();
+
+        if (!$exercise) {
+            return response()->json([
+                'message' => 'Ejercicio no encontrado.',
+            ], 404);
+        }
+
+        return response()->json($exercise->toFullArray());
     }
 
     public function register(ApiNinjaExerciseSearchRequest $request): View
@@ -37,14 +169,24 @@ class ApiNinjaExerciseController extends Controller
         $total = 0;
 
         if (!empty($apiFilters['muscle'])) {
-            try {
-                $result = $this->exerciseService->searchPaged($apiFilters, $page, $perPage);
-                $allExercises = $result['items'];
-                $total = (int) ($result['total'] ?? 0);
-            } catch (Throwable $exception) {
-                report($exception);
-                $error = $this->friendlyApiError($exception->getMessage());
+            $exerciseQuery = Exercise::query()
+                ->where(function ($builder) use ($filters): void {
+                    $builder
+                        ->where('muscle', $filters['muscle'])
+                        ->orWhere('muscle_es', $filters['muscle']);
+                });
+
+            if (!empty($apiFilters['difficulty'])) {
+                $exerciseQuery->where(function ($builder) use ($filters): void {
+                    $builder
+                        ->where('difficulty', $filters['difficulty'])
+                        ->orWhere('difficulty_es', $filters['difficulty']);
+                });
             }
+
+            $paginator = $exerciseQuery->paginate(perPage: $perPage, page: $page);
+            $allExercises = $paginator->getCollection()->map(fn (Exercise $exercise): array => $exercise->toFullArray())->all();
+            $total = $paginator->total();
         }
 
         $exercises = new LengthAwarePaginator(
@@ -58,6 +200,8 @@ class ApiNinjaExerciseController extends Controller
             ]
         );
 
+        $workoutHistory = $this->workoutHistory();
+
         return view('entrenamiento.registrar', [
             'filters' => $filters,
             'has_filters' => !empty($apiFilters['muscle']),
@@ -65,9 +209,25 @@ class ApiNinjaExerciseController extends Controller
             'error' => $error,
             'workout_cart' => $this->cartItems(),
             'workout_totals' => $this->cartTotals(),
-            'workout_history' => $this->workoutHistory(),
+            'workout_history' => $workoutHistory,
+            'exercise_previous_map' => $this->exercisePreviousMap($workoutHistory),
             'today_date' => now()->toDateString(),
         ]);
+    }
+
+    public function cancelActiveSession(Request $request): JsonResponse
+    {
+        $this->clearActiveWorkoutSession();
+
+        try {
+            return response()->json([
+                'ok' => true,
+            ]);
+        } catch (Throwable) {
+            return response()->json([
+                'ok' => true,
+            ]);
+        }
     }
 
     public function addToCart(Request $request): RedirectResponse
@@ -187,6 +347,149 @@ class ApiNinjaExerciseController extends Controller
             ->with('workout_success', 'Registro de ejercicios vaciado.');
     }
 
+    public function saveActiveSet(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'training_name' => ['nullable', 'string', 'max:120'],
+            'training_type' => ['nullable', 'string', 'max:60'],
+            'started_at' => ['nullable', 'date'],
+            'exercise' => ['required', 'array'],
+            'exercise.key' => ['required', 'string', 'max:80'],
+            'exercise.name' => ['required', 'string', 'max:255'],
+            'exercise.type' => ['nullable', 'string', 'max:120'],
+            'exercise.muscle' => ['nullable', 'string', 'max:120'],
+            'exercise.difficulty' => ['nullable', 'string', 'max:120'],
+            'exercise.equipment' => ['nullable', 'string', 'max:255'],
+            'exercise.instructions' => ['nullable', 'string'],
+            'exercise.safety_info' => ['nullable', 'string'],
+            'set' => ['required', 'array'],
+            'set.index' => ['required', 'integer', 'min:0', 'max:99'],
+            'set.kg' => ['required', 'numeric', 'min:0', 'max:1000'],
+            'set.reps' => ['required', 'integer', 'min:1', 'max:200'],
+            'set.rpe' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'set.previous' => ['nullable', 'string', 'max:80'],
+        ]);
+
+        $state = $this->activeWorkoutSession();
+        if (empty($state)) {
+            $state = [
+                'id' => (string) Str::uuid(),
+                'training_name' => 'Entrenamiento activo',
+                'training_type' => 'fuerza',
+                'started_at' => now()->toIso8601String(),
+                'exercises' => [],
+            ];
+        }
+
+        $state['training_name'] = trim((string) ($data['training_name'] ?? $state['training_name'] ?? 'Entrenamiento activo'));
+        $state['training_type'] = $this->normalizeTrainingType((string) ($data['training_type'] ?? $state['training_type'] ?? 'fuerza'));
+        if (!empty($data['started_at'])) {
+            $state['started_at'] = Carbon::parse((string) $data['started_at'])->toIso8601String();
+        }
+
+        $exercise = $data['exercise'];
+        $set = $data['set'];
+        $index = (int) $set['index'];
+        $exerciseIndex = $this->activeExerciseIndex($state, (string) $exercise['key']);
+
+        if ($exerciseIndex === null) {
+            $state['exercises'][] = [
+                'key' => (string) $exercise['key'],
+                'name' => (string) $exercise['name'],
+                'type' => $exercise['type'] ?? null,
+                'muscle' => $exercise['muscle'] ?? null,
+                'difficulty' => $exercise['difficulty'] ?? null,
+                'equipment' => $exercise['equipment'] ?? null,
+                'instructions' => $exercise['instructions'] ?? null,
+                'safety_info' => $exercise['safety_info'] ?? null,
+                'sets' => [],
+            ];
+            $exerciseIndex = array_key_last($state['exercises']);
+        }
+
+        $sets = is_array($state['exercises'][$exerciseIndex]['sets'] ?? null) ? $state['exercises'][$exerciseIndex]['sets'] : [];
+        while (count($sets) <= $index) {
+            $sets[] = [
+                'kg' => 0,
+                'reps' => 12,
+                'rpe' => 7,
+                'completed' => false,
+                'previous' => null,
+                'completed_at' => null,
+            ];
+        }
+
+        $sets[$index] = [
+            'kg' => round((float) $set['kg'], 2),
+            'reps' => (int) $set['reps'],
+            'rpe' => (int) ($set['rpe'] ?? 7),
+            'completed' => true,
+            'previous' => $set['previous'] ?? null,
+            'completed_at' => now()->toIso8601String(),
+        ];
+
+        $state['exercises'][$exerciseIndex]['sets'] = array_values($sets);
+        $state['last_saved_at'] = now()->toIso8601String();
+
+        $this->setActiveWorkoutSession($state);
+
+        return response()->json([
+            'ok' => true,
+            'saved_at' => $state['last_saved_at'],
+        ]);
+    }
+
+    public function finishActiveSession(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'training_name' => ['nullable', 'string', 'max:120'],
+            'training_type' => ['nullable', 'string', 'max:60'],
+            'notes' => ['nullable', 'string', 'max:600'],
+            'registered_at' => ['nullable', 'date_format:Y-m-d'],
+            'session_state' => ['nullable', 'array'],
+        ]);
+
+        $state = $this->activeWorkoutSession();
+        if (is_array($data['session_state'] ?? null)) {
+            $state = $this->normalizeActiveSessionState($data['session_state']);
+        }
+
+        $items = $this->completedItemsFromActiveSession($state);
+        if (empty($items)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No hay series completadas para guardar.',
+            ], 422);
+        }
+
+        $registeredAt = !empty($data['registered_at'])
+            ? Carbon::createFromFormat('Y-m-d', (string) $data['registered_at'])->setTimeFrom(now())
+            : now();
+
+        $trainingType = $this->normalizeTrainingType((string) ($data['training_type'] ?? $state['training_type'] ?? 'fuerza'));
+        $trainingName = trim((string) ($data['training_name'] ?? $state['training_name'] ?? ''));
+        $notes = trim((string) ($data['notes'] ?? ''));
+        $finalNotes = trim(
+            ($trainingName !== '' ? 'Sesion: '.$trainingName : '').
+            ($notes !== '' ? (($trainingName !== '' ? "\n" : '').$notes) : '')
+        );
+
+        $this->upsertWorkout(
+            (int) Auth::id(),
+            $trainingType,
+            $finalNotes,
+            $registeredAt,
+            $items
+        );
+
+        $this->clearActiveWorkoutSession();
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Entrenamiento registrado correctamente.',
+        ]);
+    }
+
     public function storeWorkout(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -204,49 +507,15 @@ class ApiNinjaExerciseController extends Controller
                 ->with('workout_error', 'No puedes registrar un entrenamiento vacio.');
         }
 
-        $userId = (int) Auth::id();
-        $trainingType = $this->normalizeTrainingType((string) $data['training_type']);
-        $newNotes = trim((string) ($data['notes'] ?? ''));
         $registeredAt = Carbon::createFromFormat('Y-m-d', (string) $data['registered_at'])
             ->setTimeFrom(now());
-
-        $workout = Ejercicio::with('items')
-            ->where('user_id', $userId)
-            ->where('tipo_entrene', $trainingType)
-            ->where(function ($query) use ($registeredAt): void {
-                $query
-                    ->whereDate('registered_at', $registeredAt->toDateString())
-                    ->orWhere(function ($subQuery) use ($registeredAt): void {
-                        $subQuery
-                            ->whereNull('registered_at')
-                            ->whereDate('created_at', $registeredAt->toDateString());
-                    });
-            })
-            ->first();
-
-        if ($workout) {
-            $existingItems = array_map(
-                fn (EjercicioItem $item): array => $this->workoutItemFromModel($item),
-                $workout->items->all()
-            );
-            $mergedItems = $this->mergeWorkoutItems($existingItems, array_values($cart));
-
-            $workout->notes = $this->mergeNotes($workout->notes, $newNotes);
-            $workout->registered_at = $registeredAt;
-            $workout->save();
-
-            $workout->items()->delete();
-            $this->persistWorkoutItems($workout, $mergedItems);
-        } else {
-            $workout = Ejercicio::create([
-                'user_id' => $userId,
-                'tipo_entrene' => $trainingType,
-                'notes' => $newNotes !== '' ? $newNotes : null,
-                'registered_at' => $registeredAt,
-            ]);
-
-            $this->persistWorkoutItems($workout, array_values($cart));
-        }
+        $this->upsertWorkout(
+            (int) Auth::id(),
+            $this->normalizeTrainingType((string) $data['training_type']),
+            trim((string) ($data['notes'] ?? '')),
+            $registeredAt,
+            array_values($cart)
+        );
 
         session()->forget('workout_cart');
 
@@ -310,6 +579,53 @@ class ApiNinjaExerciseController extends Controller
         }
 
         return 'No se pudo consultar la API de ejercicios en este momento.';
+    }
+
+    private function upsertWorkout(
+        int $userId,
+        string $trainingType,
+        string $newNotes,
+        Carbon $registeredAt,
+        array $items
+    ): void {
+        $workout = Ejercicio::with('items')
+            ->where('user_id', $userId)
+            ->where('tipo_entrene', $trainingType)
+            ->where(function ($query) use ($registeredAt): void {
+                $query
+                    ->whereDate('registered_at', $registeredAt->toDateString())
+                    ->orWhere(function ($subQuery) use ($registeredAt): void {
+                        $subQuery
+                            ->whereNull('registered_at')
+                            ->whereDate('created_at', $registeredAt->toDateString());
+                    });
+            })
+            ->first();
+
+        if ($workout) {
+            $existingItems = array_map(
+                fn (EjercicioItem $item): array => $this->workoutItemFromModel($item),
+                $workout->items->all()
+            );
+            $mergedItems = $this->mergeWorkoutItems($existingItems, $items);
+
+            $workout->notes = $this->mergeNotes($workout->notes, $newNotes);
+            $workout->registered_at = $registeredAt;
+            $workout->save();
+
+            $workout->items()->delete();
+            $this->persistWorkoutItems($workout, $mergedItems);
+            return;
+        }
+
+        $workout = Ejercicio::create([
+            'user_id' => $userId,
+            'tipo_entrene' => $trainingType,
+            'notes' => $newNotes !== '' ? $newNotes : null,
+            'registered_at' => $registeredAt,
+        ]);
+
+        $this->persistWorkoutItems($workout, $items);
     }
 
     private function workoutHistory(): array
@@ -447,7 +763,7 @@ class ApiNinjaExerciseController extends Controller
             }
         }
 
-        $base = url('/entrenamiento/registrar');
+        $base = url('/entrenamiento/sesion');
 
         return !empty($params) ? $base.'?'.http_build_query($params) : $base;
     }
@@ -507,6 +823,164 @@ class ApiNinjaExerciseController extends Controller
         }
 
         return array_values($merged);
+    }
+
+    private function exercisePreviousMap(array $history): array
+    {
+        $map = [];
+
+        foreach (array_reverse($history, true) as $workout) {
+            foreach (($workout['items'] ?? []) as $item) {
+                $name = strtolower(trim((string) ($item['name'] ?? '')));
+                if ($name === '' || isset($map[$name])) {
+                    continue;
+                }
+
+                $reps = max(1, (int) ($item['reps'] ?? 0));
+                $weights = $this->normalizeStoredSetWeights(
+                    $item['set_weights'] ?? null,
+                    (int) ($item['sets'] ?? 0)
+                );
+                $firstNonZeroWeight = 0.0;
+                foreach ($weights as $weight) {
+                    if ((float) $weight > 0) {
+                        $firstNonZeroWeight = (float) $weight;
+                        break;
+                    }
+                }
+
+                $weightLabel = rtrim(rtrim(number_format($firstNonZeroWeight, 2, '.', ''), '0'), '.');
+                if ($weightLabel === '') {
+                    $weightLabel = '0';
+                }
+
+                $map[$name] = $weightLabel.'kg × '.$reps;
+            }
+        }
+
+        return $map;
+    }
+
+    private function activeWorkoutSession(): array
+    {
+        $state = session('workout_session_active', []);
+        return is_array($state) ? $state : [];
+    }
+
+    private function setActiveWorkoutSession(array $state): void
+    {
+        session(['workout_session_active' => $state]);
+    }
+
+    private function clearActiveWorkoutSession(): void
+    {
+        session()->forget('workout_session_active');
+    }
+
+    private function activeExerciseIndex(array $state, string $exerciseKey): ?int
+    {
+        foreach (($state['exercises'] ?? []) as $index => $exercise) {
+            if ((string) ($exercise['key'] ?? '') === $exerciseKey) {
+                return (int) $index;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeActiveSessionState(array $state): array
+    {
+        $normalized = [
+            'id' => (string) ($state['id'] ?? Str::uuid()),
+            'training_name' => trim((string) ($state['training_name'] ?? 'Entrenamiento activo')),
+            'training_type' => $this->normalizeTrainingType((string) ($state['training_type'] ?? 'fuerza')),
+            'started_at' => (string) ($state['started_at'] ?? now()->toIso8601String()),
+            'exercises' => [],
+        ];
+
+        foreach (($state['exercises'] ?? []) as $exercise) {
+            if (!is_array($exercise)) {
+                continue;
+            }
+
+            $exerciseKey = trim((string) ($exercise['key'] ?? ''));
+            $exerciseName = trim((string) ($exercise['name'] ?? ''));
+            if ($exerciseKey === '' || $exerciseName === '') {
+                continue;
+            }
+
+            $sets = [];
+            foreach (($exercise['sets'] ?? []) as $set) {
+                if (!is_array($set)) {
+                    continue;
+                }
+
+                $sets[] = [
+                    'kg' => max(0, round((float) ($set['kg'] ?? 0), 2)),
+                    'reps' => max(1, (int) ($set['reps'] ?? 1)),
+                    'rpe' => min(10, max(1, (int) ($set['rpe'] ?? 7))),
+                    'completed' => (bool) ($set['completed'] ?? false),
+                    'previous' => isset($set['previous']) ? trim((string) $set['previous']) : null,
+                    'completed_at' => isset($set['completed_at']) ? (string) $set['completed_at'] : null,
+                ];
+            }
+
+            $normalized['exercises'][] = [
+                'key' => $exerciseKey,
+                'name' => $exerciseName,
+                'type' => $exercise['type'] ?? null,
+                'muscle' => $exercise['muscle'] ?? null,
+                'difficulty' => $exercise['difficulty'] ?? null,
+                'equipment' => $exercise['equipment'] ?? null,
+                'instructions' => $exercise['instructions'] ?? null,
+                'safety_info' => $exercise['safety_info'] ?? null,
+                'sets' => $sets,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private function completedItemsFromActiveSession(array $state): array
+    {
+        $normalized = $this->normalizeActiveSessionState($state);
+        $items = [];
+
+        foreach (($normalized['exercises'] ?? []) as $exercise) {
+            $completedSets = array_values(array_filter(
+                $exercise['sets'] ?? [],
+                fn (array $set): bool => (bool) ($set['completed'] ?? false)
+            ));
+
+            if (empty($completedSets)) {
+                continue;
+            }
+
+            $setCount = count($completedSets);
+            $avgReps = (int) round(array_sum(array_map(
+                fn (array $set): int => (int) ($set['reps'] ?? 0),
+                $completedSets
+            )) / max(1, $setCount));
+
+            $items[] = [
+                'name' => $exercise['name'],
+                'type' => $exercise['type'] ?? null,
+                'muscle' => $exercise['muscle'] ?? null,
+                'difficulty' => $exercise['difficulty'] ?? null,
+                'equipment' => $exercise['equipment'] ?? null,
+                'instructions' => $exercise['instructions'] ?? null,
+                'safety_info' => $exercise['safety_info'] ?? null,
+                'sets' => $setCount,
+                'reps' => max(1, $avgReps),
+                'minutes' => 0,
+                'set_weights' => array_map(
+                    fn (array $set): float => max(0.0, round((float) ($set['kg'] ?? 0), 2)),
+                    $completedSets
+                ),
+            ];
+        }
+
+        return $items;
     }
 
     private function normalizeSetWeights(null|string $rawWeights, int $sets): array
@@ -613,5 +1087,19 @@ class ApiNinjaExerciseController extends Controller
         }
 
         return (float) ($sets * $reps);
+    }
+
+    private function compactExerciseForPicker(array $item): array
+    {
+        return [
+            'key' => $this->itemKey($item),
+            'name' => (string) ($item['name'] ?? 'Ejercicio'),
+            'type' => $item['type'] ?? null,
+            'muscle' => $item['muscle'] ?? null,
+            'difficulty' => $item['difficulty'] ?? null,
+            'equipment' => $item['equipment'] ?? null,
+            'instructions' => null,
+            'safety_info' => null,
+        ];
     }
 }

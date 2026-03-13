@@ -1,0 +1,645 @@
+$color-bg: #0A0A0A;
+$color-surface: #161616;
+$color-accent: #F5C400;
+$color-text: #FFFFFF;
+$color-muted: #888888;
+$color-border: #2A2A2A;
+$color-set-complete-bg: #2A2200;
+
+.workout-session-panel {
+    margin-top: 1rem;
+}
+
+.ws-resume-banner {
+    background: $color-accent;
+    color: $color-bg;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    font-weight: 700;
+}
+
+.ws-resume-banner__actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ws-shell {
+    margin-top: 0.9rem;
+    border: 1px solid $color-border;
+    border-radius: 14px;
+    padding: 1rem;
+    background: $color-surface;
+}
+
+.ws-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+}
+
+.ws-header__left {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 220px;
+    flex: 1;
+}
+
+.ws-header__kicker {
+    margin: 0;
+    color: $color-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.74rem;
+}
+
+.ws-header__right {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.ws-session-clock {
+    min-width: 88px;
+    text-align: center;
+    color: $color-text;
+    border: 1px solid $color-border;
+    border-radius: 10px;
+    padding: 0.55rem 0.6rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1rem;
+    background: $color-bg;
+}
+
+.ws-tabs-row {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.55rem;
+    align-items: center;
+}
+
+.ws-tabs {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.ws-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.ws-tab {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: $color-muted;
+    white-space: nowrap;
+    padding: 0.58rem 0.68rem;
+    font-size: 0.9rem;
+}
+
+.ws-tab.is-active {
+    border-bottom-color: $color-accent;
+    color: $color-text;
+}
+
+.ws-tab--add {
+    min-width: 38px;
+    min-height: 38px;
+    border: 1px solid $color-text;
+    border-radius: 10px;
+    color: $color-text;
+}
+
+.ws-exercise-card {
+    margin-top: 1rem;
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: 12px;
+    padding: 0.8rem;
+}
+
+.ws-exercise-title {
+    margin: 0 0 0.7rem;
+    color: $color-text;
+    font-size: clamp(1.25rem, 4vw, 1.7rem);
+}
+
+.ws-table-wrap {
+    overflow-x: auto;
+}
+
+.ws-table {
+    width: 100%;
+    min-width: 684px;
+    border-collapse: collapse;
+}
+
+.ws-table th,
+.ws-table td {
+    border-bottom: 1px solid $color-border;
+    min-height: 56px;
+    height: 56px;
+    padding: 0.4rem 0.45rem;
+    text-align: left;
+    color: $color-text;
+    vertical-align: middle;
+}
+
+.ws-table th {
+    color: $color-muted;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+}
+
+.ws-col-set { width: 64px; }
+.ws-col-reps { width: 148px; }
+.ws-col-kg { width: 148px; }
+.ws-col-check { width: 64px; text-align: center; }
+
+.ws-control {
+    display: grid;
+    grid-template-columns: 36px 1fr 36px;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.ws-stepper {
+    width: 36px;
+    height: 36px;
+    border: 1px solid $color-text;
+    border-radius: 8px;
+    background: transparent;
+    color: $color-text;
+}
+
+.ws-input,
+.ws-header input,
+.ws-header select {
+    width: 100%;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid #3A3A3A;
+    background: $color-bg;
+    color: $color-text;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    padding: 0.35rem 0.5rem;
+}
+
+.ws-input:focus,
+.ws-header input:focus,
+.ws-header select:focus {
+    outline: none;
+    border-color: $color-accent;
+}
+
+.ws-input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.ws-input[type='number']::-webkit-outer-spin-button,
+.ws-input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.ws-complete-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid $color-text;
+    border-radius: 10px;
+    background: transparent;
+    color: $color-text;
+}
+
+.ws-check-icon {
+    display: inline-block;
+    transform: scale(0);
+}
+
+.ws-table tr.is-completed {
+    background: $color-set-complete-bg;
+}
+
+.ws-table tr.is-completed .ws-check-icon {
+    color: $color-accent;
+    transform: scale(1);
+    transition: transform 200ms ease;
+}
+
+.ws-helper {
+    margin: 0.7rem 0 0;
+    color: $color-muted;
+}
+
+.ws-btn {
+    border-radius: 10px;
+    padding: 0.58rem 0.9rem;
+    font-weight: 700;
+}
+
+.ws-btn--primary {
+    background: $color-accent;
+    color: $color-bg;
+    border: 1px solid $color-accent;
+}
+
+.ws-btn--secondary {
+    background: transparent;
+    color: $color-text;
+    border: 1px solid $color-text;
+}
+
+.ws-rest-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.86);
+    display: grid;
+    place-items: center;
+    z-index: 1200;
+}
+
+.ws-rest-overlay[hidden] {
+    display: none !important;
+}
+
+.ws-rest-card {
+    width: min(360px, 90vw);
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: 14px;
+    padding: 1rem;
+    display: grid;
+    justify-items: center;
+    gap: 0.8rem;
+}
+
+.ws-rest-svg {
+    width: 154px;
+    height: 154px;
+    transform: rotate(-90deg);
+}
+
+.ws-rest-track,
+.ws-rest-progress {
+    fill: none;
+    stroke-width: 8;
+}
+
+.ws-rest-track { stroke: $color-border; }
+.ws-rest-progress {
+    stroke: $color-accent;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 120ms linear;
+}
+
+.ws-rest-time {
+    margin-top: -118px;
+    margin-bottom: 56px;
+    color: $color-text;
+    font-size: clamp(1.7rem, 6vw, 2.2rem);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ws-rest-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ws-skip {
+    border: 0;
+    background: transparent;
+    color: $color-accent;
+    font-weight: 700;
+}
+
+.ws-rest-card.is-complete-pulse {
+    animation: wsRestPulse 420ms ease;
+}
+
+.ws-mobile-prev {
+    display: none;
+}
+
+.ws-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+@keyframes wsRestPulse {
+    0% { box-shadow: 0 0 0 0 rgba(245, 196, 0, 0.7); }
+    100% { box-shadow: 0 0 0 18px rgba(245, 196, 0, 0); }
+}
+
+@media (max-width: 479px) {
+    .ws-table {
+        min-width: 430px;
+    }
+
+    .ws-mobile-prev {
+        display: inline-flex;
+        margin-left: 0.3rem;
+        width: 18px;
+        height: 18px;
+        border: 1px solid $color-border;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        color: $color-muted;
+        font-size: 0.72rem;
+        position: relative;
+    }
+
+    .ws-mobile-prev span {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: calc(100% + 4px);
+        z-index: 3;
+        background: $color-bg;
+        border: 1px solid $color-border;
+        border-radius: 6px;
+        color: $color-text;
+        padding: 0.25rem 0.35rem;
+        white-space: nowrap;
+    }
+
+    .ws-mobile-prev.is-open span {
+        display: block;
+    }
+}
+
+.ws-picker-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.86);
+    display: grid;
+    place-items: center;
+    z-index: 1240;
+}
+
+.ws-picker-overlay[hidden] {
+    display: none !important;
+}
+
+.ws-picker-card {
+    width: min(760px, 94vw);
+    max-height: 86vh;
+    overflow: auto;
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: 14px;
+    padding: 0.9rem;
+}
+
+.ws-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+}
+
+.ws-picker-header h4 {
+    margin: 0;
+}
+
+.ws-picker-search-row {
+    margin-top: 0.75rem;
+}
+
+.ws-picker-search-row input {
+    width: 100%;
+    height: 40px;
+    border: 1px solid #3A3A3A;
+    border-radius: 10px;
+    background: $color-bg;
+    color: $color-text;
+    padding: 0.45rem 0.65rem;
+}
+
+.ws-picker-search-row input:focus {
+    outline: none;
+    border-color: $color-accent;
+}
+
+.ws-picker-results {
+    margin-top: 0.85rem;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.ws-picker-item {
+    border: 1px solid $color-border;
+    border-radius: 10px;
+    background: $color-bg;
+    padding: 0.65rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.ws-picker-item h5 {
+    margin: 0;
+    color: $color-text;
+}
+
+.ws-picker-tags {
+    margin-top: 0.38rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.ws-picker-tags span {
+    border: 1px solid $color-border;
+    border-radius: 999px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    color: $color-muted;
+}
+
+.ws-resume-banner--hub {
+    margin-bottom: 0.85rem;
+}
+
+.ws-btn,
+.mini-btn,
+.hero__cta,
+.ws-tab,
+button {
+    transition: transform 140ms ease, filter 140ms ease, box-shadow 140ms ease, background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.ws-btn:hover,
+.mini-btn:hover,
+.hero__cta:hover,
+.ws-tab:hover,
+button:hover {
+    filter: brightness(1.07);
+}
+
+.ws-btn:active,
+.mini-btn:active,
+.hero__cta:active,
+.ws-tab:active,
+button:active {
+    transform: translateY(1px) scale(0.98);
+}
+
+.training-hub-slider {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 280px);
+    gap: 0.75rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.training-hub-slider::-webkit-scrollbar {
+    display: none;
+}
+
+.training-hub-slide {
+    border: 1px solid $color-border;
+    border-radius: 12px;
+    background: $color-surface;
+    padding: 0.85rem;
+}
+
+.training-hub-slide h4 {
+    margin: 0 0 0.4rem;
+    color: $color-text;
+}
+
+.training-hub-slide p {
+    margin: 0.2rem 0;
+    color: $color-muted;
+}
+
+.training-hub-actions {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.training-hub-choice {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.86);
+    display: grid;
+    place-items: center;
+    z-index: 1250;
+}
+
+.training-hub-choice[hidden] {
+    display: none !important;
+}
+
+.training-hub-choice__card {
+    width: min(420px, 92vw);
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: 14px;
+    padding: 1rem;
+}
+
+.training-choice-option {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: $color-text;
+    margin-bottom: 0.45rem;
+}
+
+#training-template-select-wrap label {
+    display: block;
+    margin: 0.55rem 0 0.35rem;
+}
+
+#training-template-select {
+    width: 100%;
+    height: 36px;
+    border: 1px solid #3A3A3A;
+    border-radius: 8px;
+    background: $color-bg;
+    color: $color-text;
+    padding: 0 0.5rem;
+}
+
+.training-hub-choice__actions {
+    margin-top: 0.9rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.training-template-panel textarea {
+    width: 100%;
+    border: 1px solid #3A3A3A;
+    border-radius: 10px;
+    background: $color-bg;
+    color: $color-text;
+    padding: 0.7rem 0.75rem;
+    resize: vertical;
+}
+
+.training-template-actions {
+    margin-top: 0.8rem;
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.training-template-list {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.template-item {
+    border: 1px solid $color-border;
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: $color-surface;
+}
+
+.template-item header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.template-item h4 {
+    margin: 0;
+}
+
+.template-item p {
+    margin: 0.45rem 0;
+    color: $color-muted;
+}
+
+.template-item ul {
+    margin: 0;
+    padding-left: 1rem;
+}

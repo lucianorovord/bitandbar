@@ -3,16 +3,18 @@
 @section('contenido')
     @vite('resources/sass/entrenamientos/entrenamiento.scss')
     @vite('resources/js/entrenamiento/registrar.js')
+    @vite('resources/js/workout-session.js')
     @if(session('workout_success'))
         <section class="top-success-alert" role="status" aria-live="polite">
             {{ session('workout_success') }}
         </section>
     @endif
-    <section class="hero">
-        <p class="hero__kicker">Deporte</p>
-        <h2 class="hero__title">Registrar entrenamiento</h2>
-
-    </section>
+    <header class="ws-session-hero">
+        <div class="ws-session-hero__left">
+            <span class="ws-session-hero__kicker">SESIÓN ACTIVA</span>
+            <h2 class="ws-session-hero__title">Registrar entrenamiento</h2>
+        </div>
+    </header>
 
     @php
         $muscleCards = [
@@ -38,7 +40,7 @@
     @endphp
 
     <section class="search-panel">
-        <form method="GET" action="{{ url('/entrenamiento/registrar') }}" class="search-form">
+        <form method="GET" action="{{ url('/entrenamiento/sesion') }}" class="search-form">
             <label>Selecciona grupo muscular</label>
             <div class="muscle-grid">
                 @foreach($muscleCards as $card)
@@ -56,7 +58,7 @@
         </form>
 
         @if(!empty($filters['muscle']))
-            <form method="GET" action="{{ url('/entrenamiento/registrar') }}" class="search-form">
+            <form method="GET" action="{{ url('/entrenamiento/sesion') }}" class="search-form">
                 <label for="difficulty">Filtra por dificultad (opcional)</label>
                 <div class="search-form__row">
                     <input type="hidden" name="muscle" value="{{ $filters['muscle'] }}">
@@ -87,110 +89,119 @@
 
     <section class="results-panel">
         <h3>Registro de entrenamiento</h3>
-        @if(!empty($workout_cart))
-            <div class="results-table-wrap">
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            <th>Ejercicio</th>
-                            <th>Series</th>
-                            <th>Reps</th>
-                            <th>Pesos por serie (kg)</th>
-                            <th>Minutos</th>
-                            <th>Volumen</th>
-                            <th>Accion</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($workout_cart as $itemKey => $item)
-                            @php
-                                $setWeights = array_values(array_map(
-                                    fn ($value) => round((float) $value, 2),
-                                    is_array($item['set_weights'] ?? null) ? $item['set_weights'] : []
-                                ));
-                                $setWeightLabel = !empty($setWeights)
-                                    ? implode(', ', array_map(fn ($value) => rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.'), $setWeights))
-                                    : '-';
-                                $sumWeights = array_sum($setWeights);
-                                $rowVolume = $sumWeights > 0
-                                    ? $sumWeights * (int) ($item['reps'] ?? 0)
-                                    : (int) ($item['sets'] ?? 0) * (int) ($item['reps'] ?? 0);
-                            @endphp
-                            <tr>
-                                <td>{{ $item['name'] }}</td>
-                                <td>{{ $item['sets'] ?? 0 }}</td>
-                                <td>{{ $item['reps'] ?? 0 }}</td>
-                                <td>{{ $setWeightLabel }}</td>
-                                <td>{{ $item['minutes'] ?? 0 }}</td>
-                                <td>{{ $rowVolume }}</td>
-                                <td>
-                                    <form method="POST" action="{{ url('/entrenamiento/carrito/actualizar/'.$itemKey) }}" class="inline-form">
-                                        @csrf
-                                        <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                                        <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
-                                        <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
-                                        <input type="number" name="sets" min="1" max="20" value="{{ $item['sets'] ?? 3 }}">
-                                        <input type="number" name="reps" min="1" max="100" value="{{ $item['reps'] ?? 12 }}">
-                                        <input type="text" name="set_weights" value="{{ $setWeightLabel !== '-' ? $setWeightLabel : '' }}" placeholder="10,15,20">
-                                        <input type="number" name="minutes" min="0" max="300" value="{{ $item['minutes'] ?? 0 }}">
-                                        <button type="submit" class="mini-btn">Actualizar</button>
-                                    </form>
-                                    <form method="POST" action="{{ url('/entrenamiento/carrito/eliminar/'.$itemKey) }}">
-                                        @csrf
-                                        <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                                        <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
-                                        <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
-                                        <button type="submit" class="mini-btn mini-btn--danger" aria-label="Eliminar fila" title="Eliminar fila">X</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+        <p id="workout-session-empty-copy">Aun no has anadido ejercicios al registro.</p>
+        <div
+            id="workout-session-panel"
+            class="workout-session-panel"
+            data-save-set-url="{{ url('/entrenamiento/sesion/serie') }}"
+            data-finish-url="{{ url('/entrenamiento/sesion/finalizar') }}"
+            data-exercise-search-url="{{ url('/entrenamiento/ejercicios') }}"
+            data-exercise-detail-base-url="{{ url('/entrenamiento/ejercicios') }}"
+            data-csrf="{{ csrf_token() }}"
+            data-registered-at="{{ $today_date ?? now()->toDateString() }}"
+            data-previous-map='@json($exercise_previous_map ?? [])'
+        >
+            <section class="ws-shell" id="ws-shell" hidden>
+                <header class="ws-header">
+                    <div class="ws-header__left">
+                        <p class="ws-header__kicker">Sesion activa</p>
+                        <input id="ws-training-name" type="text" value="Entrenamiento activo" maxlength="120" aria-label="Nombre del entrenamiento">
+                    </div>
+                    <div class="ws-header__right">
+                        <label for="ws-training-type" class="ws-visually-hidden">Tipo de entrenamiento</label>
+                        <select id="ws-training-type" aria-label="Tipo de entrenamiento">
+                            <option value="fuerza">Fuerza</option>
+                            <option value="cardio">Cardio</option>
+                            <option value="movilidad">Movilidad</option>
+                            <option value="hiit">HIIT</option>
+                        </select>
+                        <div class="ws-session-clock" id="ws-session-clock" aria-live="polite">00:00</div>
+                        <button type="button" class="ws-btn ws-btn--cancel" id="ws-cancel-btn" aria-label="Cancelar sesión sin guardar">
+                            Cancelar
+                        </button>
+                        <button type="button" class="ws-btn ws-btn--primary" id="ws-finish-btn">Finalizar</button>
+                    </div>
+                </header>
 
-            <div class="cart-summary">
-                <p><strong>Ejercicios:</strong> {{ $workout_totals['exercises'] ?? 0 }}</p>
-                <p><strong>Series:</strong> {{ $workout_totals['sets'] ?? 0 }}</p>
-                <p><strong>Reps:</strong> {{ $workout_totals['reps'] ?? 0 }}</p>
-                <p><strong>Volumen:</strong> {{ $workout_totals['volume'] ?? 0 }}</p>
-                <p><strong>Minutos:</strong> {{ $workout_totals['minutes'] ?? 0 }}</p>
-            </div>
-
-            <form method="POST" action="{{ url('/entrenamiento/registrar/guardar') }}" class="search-form">
-                @csrf
-                <div class="search-form__row">
-                    <select name="training_type" required>
-                        <option value="">Tipo de entrenamiento</option>
-                        <option value="fuerza">Fuerza</option>
-                        <option value="cardio">Cardio</option>
-                        <option value="movilidad">Movilidad</option>
-                        <option value="hiit">HIIT</option>
-                    </select>
-                    <input
-                        type="date"
-                        name="registered_at"
-                        value="{{ old('registered_at', $today_date ?? now()->toDateString()) }}"
-                        required
-                    >
-                    <input type="text" name="notes" placeholder="Notas (ej: foco en tecnica)">
-                    <button type="submit" class="hero__cta">Registrar entrenamiento</button>
+                <div class="ws-tabs-row">
+                    <div class="ws-tabs" id="ws-tabs" role="tablist" aria-label="Ejercicios en sesion"></div>
+                    <button type="button" class="ws-tab ws-tab--add" id="ws-add-exercise-tab" aria-label="Anadir otro ejercicio">+</button>
                 </div>
-                <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
-                <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
-            </form>
 
-            <form method="POST" action="{{ url('/entrenamiento/carrito/limpiar') }}">
-                @csrf
-                <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
-                <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
-                <button type="submit" class="mini-btn mini-btn--danger">Vaciar registro</button>
-            </form>
-        @else
-            <p>Aun no has anadido ejercicios al registro.</p>
-        @endif
+                <div class="ws-exercise-card" id="ws-exercise-card" hidden>
+                    <div class="ws-exercise-card__header">
+                        <h4 class="ws-exercise-title" id="ws-exercise-title"></h4>
+                        <button type="button" class="ws-btn ws-btn--secondary" id="ws-exercise-info-btn">Info</button>
+                    </div>
+                    <div class="ws-table-wrap">
+                        <table class="ws-table" aria-label="Series del ejercicio activo">
+                            <thead>
+                                <tr>
+                                    <th class="ws-col-set">SERIE</th>
+                                    <th class="ws-col-reps">REPS</th>
+                                    <th class="ws-col-kg">KG</th>
+                                    <th class="ws-col-check">✓</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ws-sets-body"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="ws-btn ws-btn--secondary" id="ws-add-set-btn">+ Anadir serie</button>
+                </div>
+
+                <p class="ws-helper" id="ws-helper">Usa "Buscar ejercicios" para anadir tu primer ejercicio.</p>
+            </section>
+
+            <section class="ws-rest-overlay" id="ws-rest-overlay" hidden aria-live="polite" aria-label="Temporizador de descanso">
+                <div class="ws-rest-card" id="ws-rest-card">
+                    <svg class="ws-rest-svg" viewBox="0 0 120 120" aria-hidden="true">
+                        <circle class="ws-rest-track" cx="60" cy="60" r="52"></circle>
+                        <circle class="ws-rest-progress" id="ws-rest-progress" cx="60" cy="60" r="52"></circle>
+                    </svg>
+                    <div class="ws-rest-time" id="ws-rest-time">01:30</div>
+                    <div class="ws-rest-controls">
+                        <button type="button" class="ws-btn ws-btn--secondary" id="ws-rest-minus">-15s</button>
+                        <button type="button" class="ws-btn ws-btn--secondary" id="ws-rest-plus">+15s</button>
+                    </div>
+                    <button type="button" class="ws-skip" id="ws-rest-skip">Saltar</button>
+                </div>
+            </section>
+
+            <section class="ws-picker-overlay" id="ws-picker-overlay" hidden aria-label="Seleccion de ejercicios">
+                <div class="ws-picker-card">
+                    <header class="ws-picker-header">
+                        <h4>Seleccionar ejercicio</h4>
+                        <button type="button" class="ws-btn ws-btn--secondary" id="ws-picker-close">Cerrar</button>
+                    </header>
+                    <div class="ws-picker-search-row">
+                        <input type="search" id="ws-picker-search" placeholder="Buscar por nombre (ingles o espanol)">
+                    </div>
+                    <div class="ws-picker-results" id="ws-picker-results"></div>
+                </div>
+            </section>
+
+            <section class="ws-info-overlay" id="ws-info-overlay" hidden aria-label="Informacion del ejercicio">
+                <div class="ws-info-card">
+                    <header class="ws-info-header">
+                        <div>
+                            <p class="ws-info-kicker">Ejercicio</p>
+                            <h4 id="ws-info-title">Informacion</h4>
+                        </div>
+                        <button type="button" class="ws-btn ws-btn--secondary" id="ws-info-close">Cerrar</button>
+                    </header>
+                    <div class="ws-info-body">
+                        <section class="ws-info-block">
+                            <h5>Como hacerlo</h5>
+                            <p id="ws-info-instructions">No hay instrucciones disponibles.</p>
+                        </section>
+                        <section class="ws-info-block">
+                            <h5>Seguridad</h5>
+                            <p id="ws-info-safety">No hay medidas de seguridad disponibles.</p>
+                        </section>
+                    </div>
+                </div>
+            </section>
+        </div>
     </section>
 
     @if($exercises->count() > 0)
@@ -215,38 +226,32 @@
                             <p class="exercise-card__text">{{ $exercise['safety_info'] ?? '-' }}</p>
                         </div>
                         <div class="exercise-card__section">
-                            <form method="POST" action="{{ url('/entrenamiento/carrito/agregar') }}" class="search-form">
-                                @csrf
-                                <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                                <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
-                                <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
-                                <input type="hidden" name="name" value="{{ $exercise['name'] }}">
-                                <input type="hidden" name="type" value="{{ $exercise['type'] ?? '' }}">
-                                <input type="hidden" name="muscle" value="{{ $exercise['muscle'] ?? '' }}">
-                                <input type="hidden" name="difficulty" value="{{ $exercise['difficulty'] ?? '' }}">
-                                <input type="hidden" name="equipment" value="{{ $exercise['equipment'] ?? '' }}">
-                                <input type="hidden" name="instructions" value="{{ $exercise['instructions'] ?? '' }}">
-                                <input type="hidden" name="safety_info" value="{{ $exercise['safety_info'] ?? '' }}">
-                                <div class="exercise-input-row">
-                                    <div class="exercise-input-group">
-                                        <h6>Series</h6>
-                                        <input type="number" name="sets" min="1" max="20" value="3">
-                                    </div>
-                                    <div class="exercise-input-group">
-                                        <h6>Repeticiones</h6>
-                                        <input type="number" name="reps" min="1" max="100" value="12">
-                                    </div>
-                                    <div class="exercise-input-group">
-                                        <h6>Peso por serie (kg)</h6>
-                                        <input type="text" name="set_weights" placeholder="10,15,20">
-                                    </div>
-                                    <div class="exercise-input-group">
-                                        <h6>Minutos</h6>
-                                        <input type="number" name="minutes" min="0" max="300" value="0">
-                                    </div>
-                                    <button type="submit" class="mini-btn">+</button>
-                                </div>
-                            </form>
+                            @php
+                                $exercisePayload = [
+                                    'key' => sha1(strtolower(trim((string) ($exercise['name'] ?? ''))).'|'.strtolower(trim((string) ($exercise['muscle'] ?? ''))).'|'.strtolower(trim((string) ($exercise['type'] ?? '')))),
+                                    'name' => $exercise['name'] ?? 'Ejercicio',
+                                    'type' => $exercise['type'] ?? null,
+                                    'muscle' => $exercise['muscle'] ?? null,
+                                    'difficulty' => $exercise['difficulty'] ?? null,
+                                    'equipment' => $exercise['equipment'] ?? null,
+                                    'instructions' => $exercise['instructions'] ?? null,
+                                    'safety_info' => $exercise['safety_info'] ?? null,
+                                ];
+                            @endphp
+                            <button
+                                type="button"
+                                class="mini-btn js-workout-add"
+                                data-workout-exercise='@json($exercisePayload)'
+                            >
+                                Anadir a sesion
+                            </button>
+                            <button
+                                type="button"
+                                class="mini-btn js-workout-info"
+                                data-workout-info='@json($exercisePayload)'
+                            >
+                                Info
+                            </button>
                         </div>
                     </article>
                 @endforeach
@@ -290,6 +295,9 @@
                     <summary class="meal-history-summary">
                         <span><strong>{{ ucfirst($workout['training_type'] ?? '') }}</strong> - {{ $workout['registered_at'] ?? '' }}</span>
                         <span>Volumen {{ $workout['totals']['volume'] ?? 0 }}</span>
+                        <svg class="meal-history-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
                     </summary>
                     <div class="meal-history-content">
                         <p>

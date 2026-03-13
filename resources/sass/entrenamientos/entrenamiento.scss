@@ -134,11 +134,11 @@ main {
     margin: 0 0 1rem;
     padding: 0.85rem 1rem;
     border-radius: 12px;
-    border: 1px solid rgba(70, 200, 110, 0.95);
-    background: rgba(38, 145, 74, 0.88);
-    color: #f1fff4;
+    border: 1px solid #f5c400;
+    background: #2a2200;
+    color: #ffffff;
     font-weight: 600;
-    box-shadow: 0 10px 20px rgba(18, 82, 40, 0.35);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
 }
 
 .hero {
@@ -377,13 +377,13 @@ main {
 
 .form-error {
     margin: 0.6rem 0 0;
-    color: #ff9f9f;
+    color: #f5c400;
     font-size: 0.95rem;
 }
 
 .form-success {
     margin: 0.6rem 0 0;
-    color: #b7f8b7;
+    color: #f5c400;
     font-size: 0.95rem;
 }
 
@@ -838,5 +838,1061 @@ main {
 
     .home-feature--training .home-feature__media {
         order: 1;
+    }
+}
+
+@import '../components/workout-session';
+
+// ============================================================
+// === WORKOUT SESSION UI — Liftoff-inspired redesign       ===
+// ============================================================
+
+// --- Shared buttons ---
+.ws-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    font-family: "Poppins", sans-serif;
+    border: none;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.18s ease, opacity 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.ws-btn--primary {
+    background: $accent;
+    color: #111;
+    font-weight: 700;
+}
+
+.ws-btn--secondary {
+    background: transparent;
+    border: 1px solid rgba(255, 209, 0, 0.45);
+    color: $text;
+}
+
+.ws-btn:hover {
+    transform: translateY(-1px);
+    opacity: 0.92;
+}
+
+.ws-btn:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+// --- Session hero (estado sin sesión iniciada) ---
+.ws-session-hero {
+    background: $surface;
+    border: 1px solid rgba(255, 209, 0, 0.28);
+    border-radius: 20px;
+    padding: 1.5rem 1.8rem;
+    margin-bottom: 1rem;
+}
+
+.ws-session-hero__left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.ws-session-hero__emoji {
+    font-size: 2.5rem;
+    line-height: 1;
+    margin-bottom: 0.2rem;
+}
+
+.ws-session-hero__kicker {
+    color: $accent;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.ws-session-hero__title {
+    color: #fff;
+    margin: 0;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+}
+
+.ws-session-hero__subtitle {
+    margin: 0.3rem 0 0;
+    color: $muted;
+    font-size: 0.95rem;
+}
+
+// --- Hub ---
+.training-hub-slider {
+    display: flex;
+    gap: 0.8rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.training-hub-slide {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    min-width: 180px;
+    background: #0f0f0f;
+    border: 1px solid rgba(255, 209, 0, 0.2);
+    border-radius: 14px;
+    padding: 1rem;
+
+    h4 {
+        color: $accent;
+        margin: 0 0 0.4rem;
+        font-size: 1rem;
+    }
+
+    p {
+        margin: 0 0 0.6rem;
+        color: $muted;
+        font-size: 0.8rem;
+
+        &:nth-of-type(2),
+        &:nth-of-type(3) {
+            color: #fff;
+            font-size: 0.9rem;
+            margin-bottom: 0.35rem;
+        }
+
+        strong {
+            color: $accent;
+        }
+    }
+}
+
+.training-hub-actions {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-top: 1.2rem;
+
+    #hub-start-training {
+        background: $accent;
+        color: #111;
+        border-radius: 999px;
+        padding: 0.75rem 2rem;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    a {
+        background: transparent;
+        border: 1px solid rgba(255, 209, 0, 0.45);
+        color: $text;
+        border-radius: 999px;
+        padding: 0.75rem 1.5rem;
+        text-decoration: none;
+        font-size: 0.95rem;
+    }
+}
+
+.training-hub-choice {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 1rem;
+
+    &[hidden] {
+        display: none !important;
+    }
+}
+
+.training-hub-choice__card {
+    background: $surface;
+    border-radius: 20px;
+    padding: 1.8rem;
+    border: 1px solid rgba(255, 209, 0, 0.28);
+    width: min(360px, 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+
+    h4 {
+        color: $accent;
+        margin: 0 0 1rem;
+        font-size: 1.1rem;
+    }
+}
+
+.training-choice-option {
+    display: block;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+
+    input[type='radio'] {
+        display: none;
+    }
+
+    span {
+        color: $text;
+        font-size: 0.95rem;
+    }
+
+    &:has(input:checked) {
+        border-color: $accent;
+        background: rgba(255, 209, 0, 0.08);
+    }
+}
+
+.training-hub-choice__actions {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: flex-end;
+    margin-top: 1.2rem;
+}
+
+#training-template-select-wrap {
+    label {
+        color: $muted;
+        font-size: 0.82rem;
+        display: block;
+        margin-bottom: 0.3rem;
+    }
+}
+
+#training-template-select {
+    width: 100%;
+    background: #101010;
+    color: $text;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 0.65rem 0.8rem;
+}
+
+.ws-resume-banner {
+    background: rgba(255, 209, 0, 0.07);
+    border-left: 4px solid $accent;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
+    color: $accent;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.ws-resume-banner--hub {
+    margin-bottom: 1rem;
+}
+
+.ws-resume-banner__actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 0.7rem;
+
+    #hub-resume-link {
+        background: $accent;
+        color: #111;
+        border-radius: 999px;
+        padding: 0.5rem 1.2rem;
+        font-weight: 700;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+    #hub-discard-session {
+        background: transparent;
+        border: 1px solid rgba(255, 209, 0, 0.45);
+        color: $text;
+        border-radius: 999px;
+        padding: 0.5rem 1.2rem;
+    }
+}
+
+// --- Session shell ---
+.ws-shell {
+    display: block;
+
+    &[hidden] {
+        display: none !important;
+    }
+}
+
+.ws-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: $surface;
+    border-radius: 16px;
+    padding: 1rem 1.3rem;
+    border: 1px solid rgba(255, 209, 0, 0.22);
+    margin-bottom: 0.8rem;
+}
+
+.ws-header__left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.ws-header__right {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.ws-header__kicker {
+    color: $accent;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.ws-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+#ws-session-clock {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: $accent;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+}
+
+#ws-training-name {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 0.2rem 0;
+    font-family: "Poppins", sans-serif;
+    width: 100%;
+    max-width: 280px;
+
+    &:focus {
+        outline: none;
+        border-bottom-color: $accent;
+    }
+}
+
+#ws-training-type {
+    background: #101010;
+    color: $text;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+}
+
+#ws-finish-btn {
+    background: $accent;
+    color: #111;
+    border-radius: 999px;
+    padding: 0.55rem 1.3rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+}
+
+// --- Tabs ---
+.ws-tabs-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.8rem;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.ws-tabs {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.ws-tab {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 0.38rem 1rem;
+    color: $muted;
+    font-size: 0.83rem;
+    white-space: nowrap;
+    cursor: pointer;
+    font-family: "Poppins", sans-serif;
+    transition: all 0.18s ease;
+}
+
+.ws-tab.is-active {
+    background: $accent;
+    color: #111;
+    font-weight: 700;
+}
+
+.ws-tab--add {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px dashed rgba(255, 209, 0, 0.45);
+    color: $accent;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
+// --- Exercise card y tabla ---
+.ws-exercise-card {
+    background: $surface;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 209, 0, 0.18);
+    padding: 1.1rem;
+    margin-bottom: 0.6rem;
+}
+
+.ws-exercise-title {
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0 0 0.9rem;
+}
+
+.ws-helper {
+    color: $muted;
+    font-size: 0.9rem;
+}
+
+.ws-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.35rem;
+}
+
+.ws-table th {
+    color: $muted;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0 0.5rem 0.6rem;
+    font-weight: 600;
+}
+
+.ws-table tbody tr {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.ws-table tbody tr.is-completed {
+    opacity: 0.5;
+}
+
+.ws-table tbody td {
+    padding: 0.55rem 0.5rem;
+}
+
+.ws-table tbody td:first-child {
+    border-radius: 10px 0 0 10px;
+}
+
+.ws-table tbody td:last-child {
+    border-radius: 0 10px 10px 0;
+}
+
+.ws-col-set {
+    color: $muted;
+    font-weight: 700;
+    width: 2.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.ws-control {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.ws-stepper {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    color: $text;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:disabled {
+        opacity: 0.3;
+        pointer-events: none;
+    }
+}
+
+.ws-input {
+    width: 3.8rem;
+    text-align: center;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 600;
+    padding: 0.15rem 0;
+
+    &:focus {
+        outline: none;
+        border-bottom-color: $accent;
+    }
+
+    &:disabled {
+        opacity: 0.35;
+    }
+}
+
+.ws-complete-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid rgba(255, 209, 0, 0.38);
+    color: $accent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.18s ease;
+}
+
+tr.is-completed .ws-complete-btn {
+    background: $accent;
+    color: #111;
+    border-color: $accent;
+}
+
+#ws-add-set-btn {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: 1px dashed rgba(255, 209, 0, 0.35);
+    border-radius: 10px;
+    color: $accent;
+    padding: 0.6rem;
+    font-size: 0.88rem;
+    margin-top: 0.7rem;
+    cursor: pointer;
+    font-family: "Poppins", sans-serif;
+
+    &:hover {
+        background: rgba(255, 209, 0, 0.05);
+    }
+}
+
+// --- Rest timer ---
+.ws-rest-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.93);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+
+    &[hidden] {
+        display: none !important;
+    }
+}
+
+.ws-rest-card {
+    background: $surface;
+    border-radius: 24px;
+    padding: 2rem;
+    border: 1px solid rgba(255, 209, 0, 0.28);
+    text-align: center;
+    min-width: 260px;
+    position: relative;
+}
+
+.ws-rest-card.is-complete-pulse {
+    animation: ws-pulse 0.45s ease;
+}
+
+@keyframes ws-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.04);
+    }
+}
+
+.ws-rest-svg {
+    width: 140px;
+    height: 140px;
+    display: block;
+    margin: 0 auto;
+}
+
+.ws-rest-track {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 6;
+}
+
+.ws-rest-progress {
+    fill: none;
+    stroke: $accent;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transform-origin: center;
+    transform: rotate(-90deg);
+}
+
+.ws-rest-time {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    margin: 0;
+}
+
+.ws-rest-controls {
+    display: flex;
+    gap: 0.7rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.ws-skip {
+    background: transparent;
+    border: none;
+    color: $muted;
+    font-size: 0.88rem;
+    cursor: pointer;
+    text-decoration: underline;
+    display: block;
+    margin: 0.6rem auto 0;
+}
+
+// --- Picker overlay (compartido entre sesión y plantillas) ---
+.ws-picker-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.93);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+
+    &[hidden] {
+        display: none !important;
+    }
+}
+
+.ws-picker-card {
+    background: $surface;
+    border-radius: 20px;
+    padding: 1.4rem;
+    border: 1px solid rgba(255, 209, 0, 0.22);
+    width: min(480px, 92vw);
+    max-height: 72vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.ws-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.9rem;
+
+    h4 {
+        color: $accent;
+        margin: 0;
+        font-size: 1rem;
+    }
+}
+
+.ws-picker-search-row input {
+    width: 100%;
+    background: #0f0f0f;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 10px;
+    color: #fff;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.92rem;
+    margin-bottom: 0.7rem;
+
+    &:focus {
+        outline: none;
+        border-color: rgba(255, 209, 0, 0.5);
+    }
+}
+
+.ws-picker-results {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.ws-picker-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 0.5rem;
+    border-radius: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+    h5 {
+        margin: 0 0 0.25rem;
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.04);
+    }
+}
+
+.ws-picker-tags span {
+    display: inline-block;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(255, 209, 0, 0.1);
+    color: $accent;
+    font-size: 0.7rem;
+    margin: 0.2rem 0.25rem 0 0;
+}
+
+// --- Templates ---
+.training-template-panel {
+    display: grid;
+    gap: 1rem;
+}
+
+.training-template-form {
+    background: $surface;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 209, 0, 0.2);
+    padding: 1.2rem;
+
+    label[for='template-name'] {
+        color: $muted;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        display: block;
+        margin-bottom: 0.4rem;
+    }
+}
+
+#template-name {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid $accent;
+    color: #fff;
+    font-size: 1.3rem;
+    font-weight: 700;
+    padding: 0.3rem 0;
+    width: 100%;
+    font-family: "Poppins", sans-serif;
+
+    &:focus {
+        outline: none;
+    }
+
+    &::placeholder {
+        color: rgba(255, 255, 255, 0.25);
+    }
+}
+
+.training-template-actions {
+    display: flex;
+    gap: 0.7rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.training-template-list {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.template-item {
+    background: #0f0f0f;
+    border-radius: 14px;
+    padding: 1.1rem;
+    border: 1px solid rgba(255, 209, 0, 0.18);
+
+    header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    h4 {
+        color: $accent;
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    p {
+        color: $muted;
+        font-size: 0.82rem;
+        margin: 0.3rem 0;
+    }
+
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    ul li {
+        display: inline-flex;
+        padding: 0.2rem 0.6rem;
+        background: rgba(255, 255, 255, 0.06);
+        color: $text;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        margin: 0.2rem 0.3rem 0.2rem 0;
+    }
+}
+
+// --- Historial chevron ---
+.meal-history-chevron {
+    width: 18px;
+    height: 18px;
+    color: $muted;
+    transition: transform 0.22s ease;
+    flex-shrink: 0;
+}
+
+details[open] .meal-history-chevron {
+    transform: rotate(180deg);
+}
+
+.meal-history-summary {
+    gap: 0.5rem;
+}
+
+// --- Registrar visual refinements ---
+.muscle-card--active,
+.muscle-card:has(input:checked) {
+    box-shadow: 0 0 0 2px $accent, 0 6px 20px rgba(255, 209, 0, 0.3);
+}
+
+.search-form .hero__cta {
+    width: 100%;
+    margin-top: 0.8rem;
+    text-align: center;
+    display: block;
+}
+
+.exercise-card .js-workout-add {
+    background: $accent;
+    color: #111;
+    border-radius: 999px;
+    padding: 0.6rem 1rem;
+    width: 100%;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-family: "Poppins", sans-serif;
+}
+
+.exercise-card {
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 0 1px $accent, 0 10px 28px rgba(255, 209, 0, 0.12);
+    }
+}
+
+.mini-btn--danger {
+    border-radius: 999px;
+}
+
+// --- Responsive additions ---
+@media (max-width: 640px) {
+    .ws-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ws-header__right {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .training-hub-slide {
+        min-width: 160px;
+    }
+
+    .ws-rest-time {
+        font-size: 2rem;
+    }
+
+    .ws-picker-card {
+        max-height: 80vh;
+    }
+}
+
+.ws-btn--cancel {
+    background: transparent;
+    border: 1px solid rgba(255, 100, 100, 0.45);
+    color: #ff9f9f;
+    border-radius: 999px;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: "Poppins", sans-serif;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+
+    &:hover {
+        background: rgba(255, 100, 100, 0.1);
+        transform: translateY(-1px);
+    }
+}
+
+.ws-exercise-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+}
+
+.exercise-card__section:last-child {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.exercise-card__section:last-child .mini-btn {
+    flex: 1 1 180px;
+}
+
+.ws-info-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 110;
+    padding: 1rem;
+
+    &[hidden] {
+        display: none !important;
+    }
+}
+
+.ws-info-card {
+    width: min(560px, 94vw);
+    max-height: 80vh;
+    overflow-y: auto;
+    background: $surface;
+    border: 1px solid rgba(255, 209, 0, 0.25);
+    border-radius: 20px;
+    padding: 1.4rem;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.ws-info-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.ws-info-kicker {
+    margin: 0 0 0.3rem;
+    color: $accent;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+#ws-info-title {
+    margin: 0;
+    color: #fff;
+    font-size: 1.2rem;
+}
+
+.ws-info-body {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.ws-info-block {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 1rem;
+
+    h5 {
+        margin: 0 0 0.45rem;
+        color: $accent;
+        font-size: 0.9rem;
+    }
+
+    p {
+        margin: 0;
+        color: $text;
+        line-height: 1.6;
     }
 }

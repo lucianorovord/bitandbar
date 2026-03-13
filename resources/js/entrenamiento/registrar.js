@@ -17,7 +17,7 @@ document.querySelectorAll('.muscle-card input[type="radio"][name="muscle"]').for
 const TRAINING_SCROLL_KEY = 'bb:training-scroll-to-results';
 
 document
-    .querySelectorAll('form.search-form[action$="/entrenamiento/registrar"]')
+    .querySelectorAll('form.search-form[action$="/entrenamiento/sesion"]')
     .forEach((form) => {
         form.addEventListener('submit', () => {
             const hasMuscleField = form.querySelector('[name="muscle"], [name="muscle_filter"]');

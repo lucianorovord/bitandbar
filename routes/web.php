@@ -33,12 +33,19 @@ Route::middleware('auth')->group(function () {
     Route::post('/comida/registro/editar/{mealIndex}', [FoodDataController::class, 'updateMealRecord']);
     Route::post('/comida/registro/eliminar/{mealIndex}', [FoodDataController::class, 'deleteMealRecord']);
 
-    Route::get('/entrenamiento/registrar', [ApiNinjaExerciseController::class, 'register'])->middleware('throttle:exercise-search');
+    Route::get('/entrenamiento/registrar', [ApiNinjaExerciseController::class, 'hub']);
+    Route::get('/entrenamiento/sesion', [ApiNinjaExerciseController::class, 'register'])->middleware('throttle:exercise-search');
+    Route::get('/entrenamiento/plantillas', [ApiNinjaExerciseController::class, 'templates']);
+    Route::get('/entrenamiento/ejercicios', [ApiNinjaExerciseController::class, 'exerciseLookup'])->middleware('throttle:exercise-search');
+    Route::get('/entrenamiento/ejercicios/{apiKey}', [ApiNinjaExerciseController::class, 'exerciseDetail'])->middleware('throttle:exercise-search');
     Route::post('/entrenamiento/carrito/agregar', [ApiNinjaExerciseController::class, 'addToCart']);
     Route::post('/entrenamiento/carrito/actualizar/{itemKey}', [ApiNinjaExerciseController::class, 'updateCart']);
     Route::post('/entrenamiento/carrito/eliminar/{itemKey}', [ApiNinjaExerciseController::class, 'removeFromCart']);
     Route::post('/entrenamiento/carrito/limpiar', [ApiNinjaExerciseController::class, 'clearCart']);
     Route::post('/entrenamiento/registrar/guardar', [ApiNinjaExerciseController::class, 'storeWorkout']);
+    Route::post('/entrenamiento/sesion/serie', [ApiNinjaExerciseController::class, 'saveActiveSet']);
+    Route::post('/entrenamiento/sesion/cancelar', [ApiNinjaExerciseController::class, 'cancelActiveSession']);
+    Route::post('/entrenamiento/sesion/finalizar', [ApiNinjaExerciseController::class, 'finishActiveSession']);
     Route::post('/entrenamiento/registro/editar/{workoutIndex}', [ApiNinjaExerciseController::class, 'updateWorkoutRecord']);
     Route::post('/entrenamiento/registro/eliminar/{workoutIndex}', [ApiNinjaExerciseController::class, 'deleteWorkoutRecord']);
 
