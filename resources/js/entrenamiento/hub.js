@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'workout_templates';
 const ACTIVE_SESSION_KEY = 'workout_session_active';
 const ACTIVE_SESSION_LEFT_KEY = 'workout_session_left_tab';
+const ACTIVE_SESSION_STARTED_KEY = 'workout_session_started';
 
 const panel = document.getElementById('training-hub-panel');
 if (!panel) {
@@ -30,6 +31,9 @@ if (!panel) {
 
     const hasActiveSession = () => {
         try {
+            const started = localStorage.getItem(ACTIVE_SESSION_STARTED_KEY) === '1';
+            if (!started) return false;
+
             const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
             if (!raw) return false;
             const parsed = JSON.parse(raw);
@@ -78,6 +82,7 @@ if (!panel) {
     hubDiscardButton?.addEventListener('click', () => {
         localStorage.removeItem(ACTIVE_SESSION_KEY);
         localStorage.removeItem(ACTIVE_SESSION_LEFT_KEY);
+        localStorage.removeItem(ACTIVE_SESSION_STARTED_KEY);
         hubResumeBanner.hidden = true;
     });
 

@@ -9,87 +9,18 @@
             {{ session('workout_success') }}
         </section>
     @endif
+
     <header class="ws-session-hero">
         <div class="ws-session-hero__left">
-            <span class="ws-session-hero__kicker">SESIÓN ACTIVA</span>
+            <span class="ws-session-hero__kicker">
+                <i class="bi bi-activity"></i> SESION ACTIVA
+            </span>
             <h2 class="ws-session-hero__title">Registrar entrenamiento</h2>
         </div>
     </header>
 
-    @php
-        $muscleCards = [
-            ['value' => 'abdominals', 'label' => 'Abdominales', 'img' => asset('images/muscles/abs.png')],
-            ['value' => 'abductors', 'label' => 'Abductores', 'img' => asset('images/muscles/abductores.png')],
-            ['value' => 'adductors', 'label' => 'Aductores', 'img' => asset('images/muscles/aductores.png')],
-            ['value' => 'biceps', 'label' => 'Biceps', 'img' => asset('images/muscles/biceps.png')],
-            ['value' => 'calves', 'label' => 'Gemelos', 'img' => asset('images/muscles/gemelos.png')],
-            ['value' => 'chest', 'label' => 'Pecho', 'img' => asset('images/muscles/chest.png')],
-            ['value' => 'forearms', 'label' => 'Antebrazos', 'img' => asset('images/muscles/forearms.png')],
-            ['value' => 'glutes', 'label' => 'Gluteos', 'img' => asset('images/muscles/gluts.png')],
-            ['value' => 'hamstrings', 'label' => 'Isquiotibiales', 'img' => asset('images/muscles/hamstrings.png')],
-            ['value' => 'lats', 'label' => 'Dorsales', 'img' => asset('images/muscles/lats.png')],
-            ['value' => 'lower_back', 'label' => 'Espalda baja', 'img' => asset('images/muscles/lower_back.png')],
-            ['value' => 'middle_back', 'label' => 'Espalda media', 'img' => asset('images/muscles/middle_back.png')],
-            ['value' => 'neck', 'label' => 'Cuello', 'img' => asset('images/muscles/cuello.png')],
-            ['value' => 'quadriceps', 'label' => 'Cuadriceps', 'img' => asset('images/muscles/quads.png')],
-            ['value' => 'traps', 'label' => 'Trapecio', 'img' => asset('images/muscles/traps.png')],
-            ['value' => 'triceps', 'label' => 'Triceps', 'img' => asset('images/muscles/triceps.png')],
-            ['value' => 'shoulders', 'label' => 'Hombros', 'img' => asset('images/muscles/shoulders.png')],
-
-        ];
-    @endphp
-
-    <section class="search-panel">
-        <form method="GET" action="{{ url('/entrenamiento/sesion') }}" class="search-form">
-            <label>Selecciona grupo muscular</label>
-            <div class="muscle-grid">
-                @foreach($muscleCards as $card)
-                    <label class="muscle-card {{ ($filters['muscle'] ?? '') === $card['value'] ? 'muscle-card--active' : '' }}">
-                        <input type="radio" name="muscle" value="{{ $card['value'] }}" @checked(($filters['muscle'] ?? '') === $card['value'])>
-                        <img src="{{ $card['img'] }}" alt="{{ $card['label'] }}">
-                        <span>{{ $card['label'] }}</span>
-                    </label>
-                @endforeach
-            </div>
-
-            <div class="search-form__row search-form__row--spaced">
-                <button type="submit" class="hero__cta">Buscar ejercicios</button>
-            </div>
-        </form>
-
-        @if(!empty($filters['muscle']))
-            <form method="GET" action="{{ url('/entrenamiento/sesion') }}" class="search-form">
-                <label for="difficulty">Filtra por dificultad (opcional)</label>
-                <div class="search-form__row">
-                    <input type="hidden" name="muscle" value="{{ $filters['muscle'] }}">
-                    <select id="difficulty" name="difficulty">
-                        <option value="">Todas las dificultades</option>
-                        <option value="beginner" @selected(($filters['difficulty'] ?? '') === 'beginner')>Principiante</option>
-                        <option value="intermediate" @selected(($filters['difficulty'] ?? '') === 'intermediate')>Intermedio</option>
-                        <option value="expert" @selected(($filters['difficulty'] ?? '') === 'expert')>Avanzado</option>
-                    </select>
-                    <button type="submit" class="mini-btn">Aplicar</button>
-                </div>
-            </form>
-        @endif
-
-        @if(!empty($error))
-            <p class="form-error">{{ $error }}</p>
-        @endif
-        @if($errors->has('set_weights'))
-            <p class="form-error">{{ $errors->first('set_weights') }}</p>
-        @endif
-        @if(session('workout_error'))
-            <p class="form-error">{{ session('workout_error') }}</p>
-        @endif
-        @error('registered_at')
-            <p class="form-error">{{ $message }}</p>
-        @enderror
-    </section>
-
     <section class="results-panel">
-        <h3>Registro de entrenamiento</h3>
-        <p id="workout-session-empty-copy">Aun no has anadido ejercicios al registro.</p>
+        <p id="workout-session-empty-copy">Aun no has anadido ejercicios a la sesion.</p>
         <div
             id="workout-session-panel"
             class="workout-session-panel"
@@ -116,12 +47,14 @@
                             <option value="hiit">HIIT</option>
                         </select>
                         <div class="ws-session-clock" id="ws-session-clock" aria-live="polite">00:00</div>
-                        <button type="button" class="ws-btn ws-btn--cancel" id="ws-cancel-btn" aria-label="Cancelar sesión sin guardar">
-                            Cancelar
+                        <button type="button" class="ws-btn ws-btn--cancel" id="ws-cancel-btn" aria-label="Cancelar sesion sin guardar">
+                            <i class="bi bi-x-circle"></i> Cancelar
                         </button>
                         <button type="button" class="ws-btn ws-btn--primary" id="ws-finish-btn">Finalizar</button>
                     </div>
                 </header>
+
+                <div id="ws-mobile-cards-container" class="ws-mobile-cards-container"></div>
 
                 <div class="ws-tabs-row">
                     <div class="ws-tabs" id="ws-tabs" role="tablist" aria-label="Ejercicios en sesion"></div>
@@ -130,14 +63,30 @@
 
                 <div class="ws-exercise-card" id="ws-exercise-card" hidden>
                     <div class="ws-exercise-card__header">
-                        <h4 class="ws-exercise-title" id="ws-exercise-title"></h4>
-                        <button type="button" class="ws-btn ws-btn--secondary" id="ws-exercise-info-btn">Info</button>
+                        <div class="ws-exercise-card__info">
+                            <h4 class="ws-exercise-title" id="ws-exercise-title"></h4>
+                            <span class="ws-exercise-muscle" id="ws-exercise-muscle"></span>
+                        </div>
+                        <div class="ws-exercise-menu">
+                            <button type="button" class="ws-exercise-menu__btn" id="ws-exercise-menu-btn" aria-label="Opciones del ejercicio">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <div class="ws-exercise-dropdown" id="ws-exercise-dropdown" hidden>
+                                <button type="button" class="ws-exercise-dropdown__item" id="ws-exercise-info-btn">
+                                    <i class="bi bi-info-circle"></i> Info del ejercicio
+                                </button>
+                                <button type="button" class="ws-exercise-dropdown__item ws-exercise-dropdown__item--danger" id="ws-exercise-delete-btn">
+                                    <i class="bi bi-trash3"></i> Eliminar ejercicio
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="ws-table-wrap">
                         <table class="ws-table" aria-label="Series del ejercicio activo">
                             <thead>
                                 <tr>
                                     <th class="ws-col-set">SERIE</th>
+                                    <th class="ws-col-prev">ANTERIOR</th>
                                     <th class="ws-col-reps">REPS</th>
                                     <th class="ws-col-kg">KG</th>
                                     <th class="ws-col-check">✓</th>
@@ -149,7 +98,7 @@
                     <button type="button" class="ws-btn ws-btn--secondary" id="ws-add-set-btn">+ Anadir serie</button>
                 </div>
 
-                <p class="ws-helper" id="ws-helper">Usa "Buscar ejercicios" para anadir tu primer ejercicio.</p>
+                <p class="ws-helper" id="ws-helper">Usa el boton + para anadir tu primer ejercicio.</p>
             </section>
 
             <section class="ws-rest-overlay" id="ws-rest-overlay" hidden aria-live="polite" aria-label="Temporizador de descanso">
@@ -169,210 +118,148 @@
 
             <section class="ws-picker-overlay" id="ws-picker-overlay" hidden aria-label="Seleccion de ejercicios">
                 <div class="ws-picker-card">
+                    <div class="ws-picker-handle"></div>
                     <header class="ws-picker-header">
                         <h4>Seleccionar ejercicio</h4>
-                        <button type="button" class="ws-btn ws-btn--secondary" id="ws-picker-close">Cerrar</button>
+                        <button type="button" class="ws-btn ws-btn--secondary" id="ws-picker-close">
+                            <i class="bi bi-x-lg"></i> Cerrar
+                        </button>
                     </header>
+
                     <div class="ws-picker-search-row">
+                        <i class="bi bi-search ws-picker-search-icon"></i>
                         <input type="search" id="ws-picker-search" placeholder="Buscar por nombre (ingles o espanol)">
                     </div>
+
+                    @php
+                        $pickerMuscleCards = [
+                            ['value' => 'abdominals', 'label' => 'Abdominales', 'img' => asset('images/muscles/abs.png')],
+                            ['value' => 'abductors', 'label' => 'Abductores', 'img' => asset('images/muscles/abductores.png')],
+                            ['value' => 'adductors', 'label' => 'Aductores', 'img' => asset('images/muscles/aductores.png')],
+                            ['value' => 'biceps', 'label' => 'Biceps', 'img' => asset('images/muscles/biceps.png')],
+                            ['value' => 'calves', 'label' => 'Gemelos', 'img' => asset('images/muscles/gemelos.png')],
+                            ['value' => 'chest', 'label' => 'Pecho', 'img' => asset('images/muscles/chest.png')],
+                            ['value' => 'forearms', 'label' => 'Antebrazos', 'img' => asset('images/muscles/forearms.png')],
+                            ['value' => 'glutes', 'label' => 'Gluteos', 'img' => asset('images/muscles/gluts.png')],
+                            ['value' => 'hamstrings', 'label' => 'Isquiotibiales', 'img' => asset('images/muscles/hamstrings.png')],
+                            ['value' => 'lats', 'label' => 'Dorsales', 'img' => asset('images/muscles/lats.png')],
+                            ['value' => 'lower_back', 'label' => 'Esp. baja', 'img' => asset('images/muscles/lower_back.png')],
+                            ['value' => 'middle_back', 'label' => 'Esp. media', 'img' => asset('images/muscles/middle_back.png')],
+                            ['value' => 'neck', 'label' => 'Cuello', 'img' => asset('images/muscles/cuello.png')],
+                            ['value' => 'quadriceps', 'label' => 'Cuadriceps', 'img' => asset('images/muscles/quads.png')],
+                            ['value' => 'traps', 'label' => 'Trapecio', 'img' => asset('images/muscles/traps.png')],
+                            ['value' => 'triceps', 'label' => 'Triceps', 'img' => asset('images/muscles/triceps.png')],
+                            ['value' => 'shoulders', 'label' => 'Hombros', 'img' => asset('images/muscles/shoulders.png')],
+                        ];
+                    @endphp
+
+                    <div class="ws-picker-muscle-section">
+                        <span class="ws-picker-muscle-label">
+                            <i class="bi bi-funnel"></i> Grupo muscular
+                        </span>
+                        <div class="ws-picker-muscle-scroll-wrap">
+                            <button type="button" class="ws-picker-arr" id="ws-picker-arr-left" aria-label="Desplazar izquierda">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <div class="ws-picker-muscle-track" id="ws-picker-muscle-track">
+                                @foreach($pickerMuscleCards as $pmc)
+                                    <button type="button" class="ws-picker-mchip" data-muscle="{{ $pmc['value'] }}" data-label="{{ $pmc['label'] }}">
+                                        <img src="{{ $pmc['img'] }}" alt="{{ $pmc['label'] }}">
+                                        <span>{{ $pmc['label'] }}</span>
+                                    </button>
+                                @endforeach
+                            </div>
+                            <button type="button" class="ws-picker-arr" id="ws-picker-arr-right" aria-label="Desplazar derecha">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="ws-picker-active-filter" id="ws-picker-active-filter" hidden>
+                            <span class="ws-picker-filter-label">Filtro:</span>
+                            <span class="ws-picker-filter-badge">
+                                <span id="ws-picker-filter-text"></span>
+                                <button type="button" id="ws-picker-filter-clear" aria-label="Quitar filtro">×</button>
+                            </span>
+                        </div>
+                    </div>
+
                     <div class="ws-picker-results" id="ws-picker-results"></div>
                 </div>
             </section>
 
-            <section class="ws-info-overlay" id="ws-info-overlay" hidden aria-label="Informacion del ejercicio">
-                <div class="ws-info-card">
-                    <header class="ws-info-header">
-                        <div>
-                            <p class="ws-info-kicker">Ejercicio</p>
-                            <h4 id="ws-info-title">Informacion</h4>
-                        </div>
-                        <button type="button" class="ws-btn ws-btn--secondary" id="ws-info-close">Cerrar</button>
+            <section class="ws-stats-overlay" id="ws-stats-overlay" hidden aria-label="Resumen de sesion">
+                <div class="ws-stats-sheet">
+                    <div class="ws-picker-handle"></div>
+                    <header class="ws-picker-header">
+                        <h4><i class="bi bi-heart-pulse"></i> Resumen de sesion</h4>
+                        <button type="button" class="ws-btn ws-btn--secondary" id="ws-stats-close">
+                            <i class="bi bi-x-lg"></i> Cerrar
+                        </button>
                     </header>
-                    <div class="ws-info-body">
-                        <section class="ws-info-block">
-                            <h5>Como hacerlo</h5>
-                            <p id="ws-info-instructions">No hay instrucciones disponibles.</p>
-                        </section>
-                        <section class="ws-info-block">
-                            <h5>Seguridad</h5>
-                            <p id="ws-info-safety">No hay medidas de seguridad disponibles.</p>
-                        </section>
+                    <div class="ws-stats-body">
+                        <div class="ws-stats-section">
+                            <span class="ws-stats-label">
+                                <i class="bi bi-person-arms-up"></i> Musculos trabajados
+                            </span>
+                            <div class="ws-stats-muscles" id="ws-stats-muscles">
+                                <p class="ws-helper">Completa series para ver los musculos trabajados.</p>
+                            </div>
+                        </div>
+                        <div class="ws-stats-section">
+                            <span class="ws-stats-label">
+                                <i class="bi bi-graph-up-arrow"></i> Estadisticas
+                            </span>
+                            <div class="ws-stats-grid">
+                                <div class="ws-stats-card">
+                                    <span class="ws-stats-card__num" id="ws-stats-sets">0</span>
+                                    <span class="ws-stats-card__label">Series completadas</span>
+                                </div>
+                                <div class="ws-stats-card">
+                                    <span class="ws-stats-card__num" id="ws-stats-volume">0 kg</span>
+                                    <span class="ws-stats-card__label">Volumen total</span>
+                                </div>
+                                <div class="ws-stats-card">
+                                    <span class="ws-stats-card__num" id="ws-stats-exercises">0</span>
+                                    <span class="ws-stats-card__label">Ejercicios</span>
+                                </div>
+                                <div class="ws-stats-card">
+                                    <span class="ws-stats-card__num" id="ws-stats-reps">0</span>
+                                    <span class="ws-stats-card__label">Reps totales</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ws-stats-section" style="border-bottom:none;">
+                            <span class="ws-stats-label">
+                                <i class="bi bi-stars"></i> Recomendaciones
+                            </span>
+                            <div class="ws-stats-recos" id="ws-stats-recos">
+                                <p class="ws-helper">Las recomendaciones aparecen al finalizar la sesion.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
         </div>
     </section>
 
-    @if($exercises->count() > 0)
-        <section class="results-panel" id="exercise-results">
-            <h3>Ejercicios del grupo muscular seleccionado</h3>
-            <div class="exercise-grid">
-                @foreach($exercises as $exercise)
-                    <article class="exercise-card">
-                        <h2 class="exercise-card__title">{{ $exercise['name'] }}</h2>
-                        <div class="exercise-card__meta">
-                            <span class="exercise-pill exercise-pill--type"><strong>Tipo:</strong> {{ $exercise['type'] ?? '-' }}</span>
-                            <span class="exercise-pill"><strong>Musculo:</strong> {{ $exercise['muscle'] ?? '-' }}</span>
-                            <span class="exercise-pill"><strong>Dificultad:</strong> {{ $exercise['difficulty'] ?? '-' }}</span>
-                            <span class="exercise-pill"><strong>Equipo:</strong> {{ $exercise['equipment'] ?? '-' }}</span>
-                        </div>
-                        <div class="exercise-card__section">
-                            <p class="exercise-card__label">Instrucciones</p>
-                            <p class="exercise-card__text">{{ $exercise['instructions'] ?? '-' }}</p>
-                        </div>
-                        <div class="exercise-card__section">
-                            <p class="exercise-card__label">Seguridad</p>
-                            <p class="exercise-card__text">{{ $exercise['safety_info'] ?? '-' }}</p>
-                        </div>
-                        <div class="exercise-card__section">
-                            @php
-                                $exercisePayload = [
-                                    'key' => sha1(strtolower(trim((string) ($exercise['name'] ?? ''))).'|'.strtolower(trim((string) ($exercise['muscle'] ?? ''))).'|'.strtolower(trim((string) ($exercise['type'] ?? '')))),
-                                    'name' => $exercise['name'] ?? 'Ejercicio',
-                                    'type' => $exercise['type'] ?? null,
-                                    'muscle' => $exercise['muscle'] ?? null,
-                                    'difficulty' => $exercise['difficulty'] ?? null,
-                                    'equipment' => $exercise['equipment'] ?? null,
-                                    'instructions' => $exercise['instructions'] ?? null,
-                                    'safety_info' => $exercise['safety_info'] ?? null,
-                                ];
-                            @endphp
-                            <button
-                                type="button"
-                                class="mini-btn js-workout-add"
-                                data-workout-exercise='@json($exercisePayload)'
-                            >
-                                Anadir a sesion
-                            </button>
-                            <button
-                                type="button"
-                                class="mini-btn js-workout-info"
-                                data-workout-info='@json($exercisePayload)'
-                            >
-                                Info
-                            </button>
-                        </div>
-                    </article>
-                @endforeach
-            </div>
-            @if($exercises->hasPages())
-                <div class="pagination-wrap">
-                    @if($exercises->onFirstPage())
-                        <span class="pagination-link pagination-link--disabled">Anterior</span>
-                    @else
-                        <a class="pagination-link" href="{{ $exercises->previousPageUrl() }}">Anterior</a>
-                    @endif
-
-                    @for($page = 1; $page <= $exercises->lastPage(); $page++)
-                        <a
-                            class="pagination-link {{ $page === $exercises->currentPage() ? 'pagination-link--active' : '' }}"
-                            href="{{ $exercises->url($page) }}"
-                        >
-                            {{ $page }}
-                        </a>
-                    @endfor
-
-                    @if($exercises->hasMorePages())
-                        <a class="pagination-link" href="{{ $exercises->nextPageUrl() }}">Siguiente</a>
-                    @else
-                        <span class="pagination-link pagination-link--disabled">Siguiente</span>
-                    @endif
-                </div>
-            @endif
-        </section>
-    @elseif(!empty($has_filters))
-        <section class="results-panel">
-            <p>No se encontraron ejercicios para ese grupo muscular con la dificultad indicada.</p>
-        </section>
-    @endif
-
-    @if(!empty($workout_history))
-        <section class="results-panel">
-            <h3>Entrenamientos registrados (sesion actual)</h3>
-            @foreach(array_reverse($workout_history, true) as $workoutIndex => $workout)
-                <details class="meal-history-item">
-                    <summary class="meal-history-summary">
-                        <span><strong>{{ ucfirst($workout['training_type'] ?? '') }}</strong> - {{ $workout['registered_at'] ?? '' }}</span>
-                        <span>Volumen {{ $workout['totals']['volume'] ?? 0 }}</span>
-                        <svg class="meal-history-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </summary>
-                    <div class="meal-history-content">
-                        <p>
-                            Ejercicios: {{ $workout['totals']['exercises'] ?? 0 }} |
-                            Series: {{ $workout['totals']['sets'] ?? 0 }} |
-                            Reps: {{ $workout['totals']['reps'] ?? 0 }} |
-                            Volumen: {{ $workout['totals']['volume'] ?? 0 }}
-                        </p>
-                        @if(!empty($workout['notes']))
-                            <p>Nota: {{ $workout['notes'] }}</p>
-                        @endif
-                        <form method="POST" action="{{ url('/entrenamiento/registro/editar/'.$workoutIndex) }}" class="search-form">
-                            @csrf
-                            <div class="search-form__row">
-                                <select name="training_type" required>
-                                    <option value="fuerza" @selected(($workout['training_type'] ?? '') === 'fuerza')>Fuerza</option>
-                                    <option value="cardio" @selected(($workout['training_type'] ?? '') === 'cardio')>Cardio</option>
-                                    <option value="movilidad" @selected(($workout['training_type'] ?? '') === 'movilidad')>Movilidad</option>
-                                    <option value="hiit" @selected(($workout['training_type'] ?? '') === 'hiit')>HIIT</option>
-                                </select>
-                                <input type="text" name="notes" value="{{ $workout['notes'] ?? '' }}" placeholder="Editar nota">
-                                <button type="submit" class="mini-btn">Guardar cambios</button>
-                            </div>
-                            <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                            <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
-                            <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
-                        </form>
-
-                        <form method="POST" action="{{ url('/entrenamiento/registro/eliminar/'.$workoutIndex) }}">
-                            @csrf
-                            <input type="hidden" name="muscle_filter" value="{{ $filters['muscle'] ?? '' }}">
-                            <input type="hidden" name="difficulty_filter" value="{{ $filters['difficulty'] ?? '' }}">
-                            <input type="hidden" name="page" value="{{ $exercises->currentPage() }}">
-                            <button type="submit" class="mini-btn mini-btn--danger">Eliminar registro</button>
-                        </form>
-                        <div class="results-table-wrap">
-                            <table class="results-table">
-                                <thead>
-                                    <tr>
-                                        <th>Ejercicio</th>
-                                        <th>Series</th>
-                                        <th>Reps</th>
-                                        <th>Pesos por serie (kg)</th>
-                                        <th>Volumen</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach(($workout['items'] ?? []) as $item)
-                                        @php
-                                            $historySetWeights = array_values(array_map(
-                                                fn ($value) => round((float) $value, 2),
-                                                is_array($item['set_weights'] ?? null) ? $item['set_weights'] : []
-                                            ));
-                                            $historyWeightLabel = !empty($historySetWeights)
-                                                ? implode(', ', array_map(fn ($value) => rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.'), $historySetWeights))
-                                                : '-';
-                                            $historySumWeights = array_sum($historySetWeights);
-                                            $historyVolume = $historySumWeights > 0
-                                                ? $historySumWeights * (int) ($item['reps'] ?? 0)
-                                                : (int) ($item['sets'] ?? 0) * (int) ($item['reps'] ?? 0);
-                                        @endphp
-                                        <tr>
-                                            <td>{{ $item['name'] ?? 'Ejercicio' }}</td>
-                                            <td>{{ $item['sets'] ?? 0 }}</td>
-                                            <td>{{ $item['reps'] ?? 0 }}</td>
-                                            <td>{{ $historyWeightLabel }}</td>
-                                            <td>{{ $historyVolume }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </details>
-            @endforeach
-        </section>
-    @endif
+    <nav class="ws-bottom-nav" id="ws-bottom-nav" aria-label="Navegacion principal">
+        <a href="{{ url('/') }}" class="ws-nav-item">
+            <i class="bi bi-house"></i>
+            <span>Inicio</span>
+        </a>
+        <a href="{{ url('/historial') }}" class="ws-nav-item">
+            <i class="bi bi-calendar3"></i>
+            <span>Historial</span>
+        </a>
+        <button type="button" class="ws-nav-center" id="ws-nav-stats-btn" aria-label="Ver resumen de sesion">
+            <i class="bi bi-heart-pulse"></i>
+        </button>
+        <a href="{{ url('/entrenamiento/plantillas') }}" class="ws-nav-item">
+            <i class="bi bi-journal-text"></i>
+            <span>Rutinas</span>
+        </a>
+        <a href="{{ url('/profile') }}" class="ws-nav-item {{ request()->is('profile*') ? 'is-active' : '' }}">
+            <i class="bi bi-person-circle"></i>
+            <span>Perfil</span>
+        </a>
+    </nav>
 @endsection
