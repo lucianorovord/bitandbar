@@ -66,6 +66,7 @@ class WorkoutSession {
         this.searchTimer = null;
         this.activeMuscleFilter = null;
         this.lastRenderedExerciseCount = 0;
+        this.lastViewportIsMobile = this.isMobile();
         this.restTimer = new RestTimer(document.getElementById('ws-rest-overlay'));
 
         this.bindEvents();
@@ -280,6 +281,18 @@ class WorkoutSession {
         document.addEventListener('visibilitychange', () => {
             if (this.state && Array.isArray(this.state.exercises) && this.state.exercises.length > 0) {
                 window.localStorage.setItem(ACTIVE_SESSION_LEFT_KEY, '1');
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            const isMobile = this.isMobile();
+            if (isMobile === this.lastViewportIsMobile) {
+                return;
+            }
+
+            this.lastViewportIsMobile = isMobile;
+            if (this.state) {
+                this.render();
             }
         });
     }
@@ -999,6 +1012,7 @@ class WorkoutSession {
                         </div>
                     </div>
                     <div class="ws-mobile-ex-card__body ${isActive ? '' : 'is-collapsed'}" id="ws-mobile-body-${exercise.key}">
+                        <div class="ws-mobile-table-wrap">
                         <table class="ws-table ws-table--mobile">
                             <thead>
                                 <tr>
@@ -1037,6 +1051,7 @@ class WorkoutSession {
                                 `).join('')}
                             </tbody>
                         </table>
+                        </div>
                         <button type="button" class="ws-btn ws-btn--secondary ws-add-set-btn" onclick="window.wsSession.addSetToExercise('${exercise.key}')">
                             + Anadir serie
                         </button>

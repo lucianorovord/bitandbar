@@ -3020,8 +3020,26 @@ details[open] .meal-history-chevron {
         }
     }
 
+    .ws-mobile-table-wrap {
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.2rem;
+        scrollbar-width: thin;
+    }
+
     .ws-table--mobile {
         margin-top: 0.5rem;
+        min-width: 540px;
+    }
+
+    .ws-table--mobile .ws-col-check {
+        min-width: 52px;
+        text-align: center;
+    }
+
+    .ws-table--mobile .ws-complete-btn {
+        margin-inline: auto;
     }
 
     .ws-add-set-btn {
