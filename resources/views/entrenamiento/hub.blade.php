@@ -13,14 +13,6 @@
     </section>
 
     <section class="results-panel training-hub-panel" id="training-hub-panel" data-session-url="{{ url('/entrenamiento/sesion') }}" data-template-url="{{ url('/entrenamiento/plantillas') }}">
-        <div class="ws-resume-banner ws-resume-banner--hub" id="hub-resume-banner" hidden>
-            <span>Tienes una sesion activa en curso.</span>
-            <div class="ws-resume-banner__actions">
-                <a href="{{ url('/entrenamiento/sesion?resume=1') }}" class="ws-btn ws-btn--primary" id="hub-resume-link">Continuar sesion</a>
-                <button type="button" class="ws-btn ws-btn--secondary" id="hub-discard-session">Descartar</button>
-            </div>
-        </div>
-
         <h3>Ultimos 3 registros</h3>
         <div class="training-hub-slider" id="training-hub-slider">
             @forelse($latest_workouts as $workout)

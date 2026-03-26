@@ -65,16 +65,72 @@ class ApiNinjaExerciseController extends Controller
     {
         $data = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
+            'muscle' => ['nullable', 'string', 'max:80'],
+            'difficulty' => ['nullable', 'string', 'max:80'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:30'],
         ]);
 
+        $muscle = trim((string) ($data['muscle'] ?? ''));
+        $difficulty = trim((string) ($data['difficulty'] ?? ''));
         $query = trim((string) ($data['q'] ?? ''));
         $page = max(1, (int) ($data['page'] ?? 1));
         $perPage = max(1, min(30, (int) ($data['per_page'] ?? 20)));
+        $apiFilters = [];
+
+        if ($muscle !== '') {
+            $apiFilters['muscle'] = $muscle;
+        }
+
+        if ($difficulty !== '') {
+            $apiFilters['difficulty'] = $difficulty;
+        }
 
         if (Exercise::query()->count() === 0) {
             try {
+                if ($query === '' && !empty($apiFilters)) {
+                    $result = $this->exerciseService->searchPaged($apiFilters, $page, $perPage);
+                    $items = $result['items'] ?? [];
+
+                    if (empty($items)) {
+                        $resultAll = $this->exerciseService->searchPaged([], 1, 100);
+                        $allItems = $resultAll['items'] ?? [];
+
+                        if (!empty($apiFilters['muscle'])) {
+                            $muscleAliases = $this->exerciseFilterAliases($apiFilters['muscle'], 'muscle');
+                            $allItems = array_values(array_filter(
+                                $allItems,
+                                fn (array $item): bool =>
+                                    in_array(strtolower(trim((string) ($item['muscle'] ?? ''))), $muscleAliases, true)
+                            ));
+                        }
+
+                        $total = count($allItems);
+                        $offset = ($page - 1) * $perPage;
+                        $items = array_slice($allItems, $offset, $perPage);
+
+                        return response()->json([
+                            'items' => array_map(
+                                fn (array $item): array => $this->compactExerciseForPicker($item),
+                                $items
+                            ),
+                            'total' => $total,
+                            'page' => $page,
+                            'needs_sync' => true,
+                        ]);
+                    }
+
+                    return response()->json([
+                        'items' => array_map(
+                            fn (array $item): array => $this->compactExerciseForPicker($item),
+                            $items
+                        ),
+                        'total' => (int) ($result['total'] ?? count($items)),
+                        'page' => $page,
+                        'needs_sync' => true,
+                    ]);
+                }
+
                 if ($query === '') {
                     $result = $this->exerciseService->searchPaged([], $page, $perPage);
                     return response()->json([
@@ -100,6 +156,26 @@ class ApiNinjaExerciseController extends Controller
                     }
                 }
 
+                if (!empty($apiFilters['muscle'])) {
+                    $muscleAliases = $this->exerciseFilterAliases($apiFilters['muscle'], 'muscle');
+                    $merged = array_filter(
+                        $merged,
+                        fn (array $item): bool =>
+                            in_array(strtolower(trim((string) ($item['muscle'] ?? ''))), $muscleAliases, true)
+                            || in_array(strtolower(trim((string) ($item['muscle_es'] ?? ''))), $muscleAliases, true)
+                    );
+                }
+
+                if (!empty($apiFilters['difficulty'])) {
+                    $difficultyAliases = $this->exerciseFilterAliases($apiFilters['difficulty'], 'difficulty');
+                    $merged = array_filter(
+                        $merged,
+                        fn (array $item): bool =>
+                            in_array(strtolower(trim((string) ($item['difficulty'] ?? ''))), $difficultyAliases, true)
+                            || in_array(strtolower(trim((string) ($item['difficulty_es'] ?? ''))), $difficultyAliases, true)
+                    );
+                }
+
                 return response()->json([
                     'items' => array_map(
                         fn (array $item): array => $this->compactExerciseForPicker($item),
@@ -121,6 +197,9 @@ class ApiNinjaExerciseController extends Controller
             }
         }
 
+        $muscleAliases = $this->exerciseFilterAliases($muscle, 'muscle');
+        $difficultyAliases = $this->exerciseFilterAliases($difficulty, 'difficulty');
+
         $paginator = Exercise::query()
             ->when($query !== '', function ($builder) use ($query): void {
                 $builder->where(function ($inner) use ($query): void {
@@ -129,6 +208,20 @@ class ApiNinjaExerciseController extends Controller
                         ->orWhere('name', 'like', "%{$query}%")
                         ->orWhere('muscle_es', 'like', "%{$query}%")
                         ->orWhere('muscle', 'like', "%{$query}%");
+                });
+            })
+            ->when(!empty($muscleAliases), function ($builder) use ($muscleAliases): void {
+                $builder->where(function ($inner) use ($muscleAliases): void {
+                    $inner
+                        ->whereIn('muscle', $muscleAliases)
+                        ->orWhereIn('muscle_es', $muscleAliases);
+                });
+            })
+            ->when(!empty($difficultyAliases), function ($builder) use ($difficultyAliases): void {
+                $builder->where(function ($inner) use ($difficultyAliases): void {
+                    $inner
+                        ->whereIn('difficulty', $difficultyAliases)
+                        ->orWhereIn('difficulty_es', $difficultyAliases);
                 });
             })
             ->paginate(perPage: $perPage, page: $page);
@@ -169,18 +262,20 @@ class ApiNinjaExerciseController extends Controller
         $total = 0;
 
         if (!empty($apiFilters['muscle'])) {
+            $muscleAliases = $this->exerciseFilterAliases($filters['muscle'], 'muscle');
             $exerciseQuery = Exercise::query()
-                ->where(function ($builder) use ($filters): void {
+                ->where(function ($builder) use ($muscleAliases): void {
                     $builder
-                        ->where('muscle', $filters['muscle'])
-                        ->orWhere('muscle_es', $filters['muscle']);
+                        ->whereIn('muscle', $muscleAliases)
+                        ->orWhereIn('muscle_es', $muscleAliases);
                 });
 
             if (!empty($apiFilters['difficulty'])) {
-                $exerciseQuery->where(function ($builder) use ($filters): void {
+                $difficultyAliases = $this->exerciseFilterAliases($filters['difficulty'], 'difficulty');
+                $exerciseQuery->where(function ($builder) use ($difficultyAliases): void {
                     $builder
-                        ->where('difficulty', $filters['difficulty'])
-                        ->orWhere('difficulty_es', $filters['difficulty']);
+                        ->whereIn('difficulty', $difficultyAliases)
+                        ->orWhereIn('difficulty_es', $difficultyAliases);
                 });
             }
 
@@ -1101,5 +1196,74 @@ class ApiNinjaExerciseController extends Controller
             'instructions' => null,
             'safety_info' => null,
         ];
+    }
+
+    private function exerciseFilterAliases(string $value, string $kind): array
+    {
+        $normalized = strtolower(trim($value));
+        if ($normalized === '') {
+            return [];
+        }
+
+        $maps = [
+            'muscle' => [
+                'abdominals' => ['abdominals', 'abdominales'],
+                'abdominales' => ['abdominals', 'abdominales'],
+                'abductors' => ['abductors', 'abductores', 'secuestradores'],
+                'abductores' => ['abductors', 'abductores', 'secuestradores'],
+                'secuestradores' => ['abductors', 'abductores', 'secuestradores'],
+                'adductors' => ['adductors', 'aductores'],
+                'aductores' => ['adductors', 'aductores'],
+                'biceps' => ['biceps', 'bíceps'],
+                'bíceps' => ['biceps', 'bíceps'],
+                'calves' => ['calves', 'gemelos', 'terneros', 'pantorrillas'],
+                'gemelos' => ['calves', 'gemelos', 'terneros', 'pantorrillas'],
+                'terneros' => ['calves', 'gemelos', 'terneros', 'pantorrillas'],
+                'pantorrillas' => ['calves', 'gemelos', 'terneros', 'pantorrillas'],
+                'chest' => ['chest', 'pecho'],
+                'pecho' => ['chest', 'pecho'],
+                'forearms' => ['forearms', 'antebrazos'],
+                'antebrazos' => ['forearms', 'antebrazos'],
+                'glutes' => ['glutes', 'gluteos', 'glúteos'],
+                'gluteos' => ['glutes', 'gluteos', 'glúteos'],
+                'glúteos' => ['glutes', 'gluteos', 'glúteos'],
+                'hamstrings' => ['hamstrings', 'isquiotibiales'],
+                'isquiotibiales' => ['hamstrings', 'isquiotibiales'],
+                'lats' => ['lats', 'dorsales'],
+                'dorsales' => ['lats', 'dorsales'],
+                'lower_back' => ['lower_back', 'espalda baja', 'espalda_inferior', 'esp. baja'],
+                'espalda baja' => ['lower_back', 'espalda baja', 'espalda_inferior', 'esp. baja'],
+                'espalda_inferior' => ['lower_back', 'espalda baja', 'espalda_inferior', 'esp. baja'],
+                'esp. baja' => ['lower_back', 'espalda baja', 'espalda_inferior', 'esp. baja'],
+                'middle_back' => ['middle_back', 'espalda media'],
+                'espalda media' => ['middle_back', 'espalda media'],
+                'neck' => ['neck', 'cuello'],
+                'cuello' => ['neck', 'cuello'],
+                'quadriceps' => ['quadriceps', 'cuadriceps', 'cuádriceps', 'cuadríceps'],
+                'cuadriceps' => ['quadriceps', 'cuadriceps', 'cuádriceps', 'cuadríceps'],
+                'cuádriceps' => ['quadriceps', 'cuadriceps', 'cuádriceps', 'cuadríceps'],
+                'cuadríceps' => ['quadriceps', 'cuadriceps', 'cuádriceps', 'cuadríceps'],
+                'traps' => ['traps', 'trapecio', 'trampas'],
+                'trapecio' => ['traps', 'trapecio', 'trampas'],
+                'trampas' => ['traps', 'trapecio', 'trampas'],
+                'triceps' => ['triceps', 'tríceps'],
+                'tríceps' => ['triceps', 'tríceps'],
+                'shoulders' => ['shoulders', 'hombros', 'espalda', 'deltoides'],
+                'hombros' => ['shoulders', 'hombros', 'espalda', 'deltoides'],
+                'espalda' => ['shoulders', 'hombros', 'espalda', 'deltoides'],
+                'deltoides' => ['shoulders', 'hombros', 'espalda', 'deltoides'],
+            ],
+            'difficulty' => [
+                'beginner' => ['beginner', 'principiante'],
+                'principiante' => ['beginner', 'principiante'],
+                'intermediate' => ['intermediate', 'intermedio'],
+                'intermedio' => ['intermediate', 'intermedio'],
+                'expert' => ['expert', 'avanzado', 'experto'],
+                'avanzado' => ['expert', 'avanzado', 'experto'],
+                'experto' => ['expert', 'avanzado', 'experto'],
+            ],
+        ];
+
+        return array_values(array_unique($maps[$kind][$normalized] ?? [$normalized]));
     }
 }

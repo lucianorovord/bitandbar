@@ -1080,45 +1080,6 @@ main {
     padding: 0.65rem 0.8rem;
 }
 
-.ws-resume-banner {
-    background: rgba(255, 209, 0, 0.07);
-    border-left: 4px solid $accent;
-    border-radius: 12px;
-    padding: 1rem 1.2rem;
-    margin-bottom: 1rem;
-    color: $accent;
-    font-weight: 700;
-    font-size: 0.95rem;
-}
-
-.ws-resume-banner--hub {
-    margin-bottom: 1rem;
-}
-
-.ws-resume-banner__actions {
-    display: flex;
-    gap: 0.6rem;
-    margin-top: 0.7rem;
-
-    #hub-resume-link {
-        background: $accent;
-        color: #111;
-        border-radius: 999px;
-        padding: 0.5rem 1.2rem;
-        font-weight: 700;
-        text-decoration: none;
-        font-size: 0.9rem;
-    }
-
-    #hub-discard-session {
-        background: transparent;
-        border: 1px solid rgba(255, 209, 0, 0.45);
-        color: $text;
-        border-radius: 999px;
-        padding: 0.5rem 1.2rem;
-    }
-}
-
 // --- Session shell ---
 .ws-shell {
     display: block;
@@ -3097,6 +3058,24 @@ details[open] .meal-history-chevron {
     #ws-mobile-cards-container {
         display: none;
     }
+}
+
+// === Animaciones banner y tarjeta global ===
+
+@keyframes ws-slide-down-fade {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(16px) scale(0.96);
+    }
+}
+
+.ws-global-card--hiding {
+    animation: ws-slide-down-fade 0.35s ease forwards;
+    pointer-events: none;
 }
 
 .ws-info-block {
