@@ -50,6 +50,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/entrenamiento/registro/eliminar/{workoutIndex}', [ApiNinjaExerciseController::class, 'deleteWorkoutRecord']);
 
     Route::post('/recipes/search-by-ingredients', [SpoonacularController::class, 'searchByIngredients'])->middleware('throttle:recipes-search');
+    Route::get('/recipes/search-by-nutrients', [SpoonacularController::class, 'searchByNutrients'])->middleware('throttle:recipes-search');
+    Route::get('/recipes/search-complex', [SpoonacularController::class, 'searchComplex'])->middleware('throttle:recipes-search');
+    Route::get('/recipes/favorites', [SpoonacularController::class, 'getFavorites']);
+    Route::get('/recipes/{recipeId}/information', [SpoonacularController::class, 'recipeInformation'])->middleware('throttle:recipes-search');
+    Route::get('/recipes/{recipeId}/similar', [SpoonacularController::class, 'similarRecipes'])->middleware('throttle:recipes-search');
+    Route::post('/recipes/{recipeId}/favorite', [SpoonacularController::class, 'toggleFavorite']);
     Route::get('/historial', [HistorialController::class, 'index']);
     Route::get('/historial/calendar-data', [HistorialController::class, 'calendarData']);
     Route::get('/recipes/{recipeId}/nutrition-details', [SpoonacularController::class, 'nutritionDetails'])->middleware('throttle:recipes-search');

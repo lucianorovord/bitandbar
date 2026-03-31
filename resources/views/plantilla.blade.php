@@ -21,6 +21,37 @@
         @yield('contenido')
     </main>
 
+    @auth
+        @unless (request()->is('entrenamiento/sesion'))
+            <nav class="site-mobile-nav" aria-label="Navegacion principal movil">
+                <a href="{{ url('/recetas') }}" class="site-mobile-nav__item {{ request()->is('recetas*') ? 'is-active' : '' }}">
+                    <i class="bi bi-fork-knife"></i>
+                    <span>Recetas</span>
+                </a>
+                <a href="{{ url('/comida/registrar') }}" class="site-mobile-nav__item {{ request()->is('comida/registrar*') ? 'is-active' : '' }}">
+                    <i class="bi bi-egg-fried"></i>
+                    <span>Comida</span>
+                </a>
+                <a href="{{ url('/entrenamiento/registrar') }}" class="site-mobile-nav__item {{ request()->is('entrenamiento/registrar*') || request()->is('entrenamiento/plantillas*') ? 'is-active' : '' }}">
+                    <i class="bi bi-heart-pulse"></i>
+                    <span>Entreno</span>
+                </a>
+                <a href="{{ route('home') }}" class="site-mobile-nav__item {{ request()->routeIs('home') ? 'is-active' : '' }}">
+                    <i class="bi bi-house-door"></i>
+                    <span>Inicio</span>
+                </a>
+                <a href="{{ url('/historial') }}" class="site-mobile-nav__item {{ request()->is('historial*') ? 'is-active' : '' }}">
+                    <i class="bi bi-calendar3"></i>
+                    <span>Historial</span>
+                </a>
+                <a href="{{ route('profile.edit') }}" class="site-mobile-nav__item {{ request()->routeIs('profile.*') ? 'is-active' : '' }}">
+                    <i class="bi bi-person"></i>
+                    <span>Perfil</span>
+                </a>
+            </nav>
+        @endunless
+    @endauth
+
     <div id="ws-global-card" class="ws-global-card" hidden>
         <div class="ws-global-card__inner" id="ws-global-card-inner">
             <div class="ws-global-card__left">

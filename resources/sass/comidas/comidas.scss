@@ -840,3 +840,381 @@ main {
         order: 1;
     }
 }
+
+// === RECETAS — tabs, modal, nutrientes ===
+
+.recipe-search-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.recipe-tab {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 0.45rem 1.1rem;
+    color: $muted;
+    font-size: 0.88rem;
+    cursor: pointer;
+    font-family: "Poppins", sans-serif;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: rgba(255, 209, 0, 0.4);
+        color: $text;
+    }
+
+    &.is-active {
+        background: $accent;
+        color: #111;
+        font-weight: 700;
+        border-color: $accent;
+    }
+}
+
+.recipe-nutrients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.recipe-nutrient-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+
+    label {
+        font-size: 0.78rem;
+        color: $muted;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    input {
+        background: #101010;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 10px;
+        color: $text;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
+        font-family: "Poppins", sans-serif;
+        outline: none;
+
+        &:focus {
+            border-color: rgba(255, 209, 0, 0.5);
+        }
+    }
+}
+
+.recipe-card__img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 0.7rem;
+}
+
+.recipe-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.js-recipe-favorite {
+    &.is-fav i {
+        color: #ff6b6b;
+    }
+}
+
+.recipe-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 1rem;
+}
+
+.recipe-modal-overlay[hidden] {
+    display: none !important;
+}
+
+.recipe-modal {
+    background: $surface;
+    border: 1px solid rgba(255, 209, 0, 0.25);
+    border-radius: 20px;
+    width: min(680px, 100%);
+    max-height: 88vh;
+    overflow-y: auto;
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 209, 0, 0.3) transparent;
+}
+
+.recipe-modal__close {
+    position: sticky;
+    top: 0.8rem;
+    float: right;
+    margin: 0.8rem 0.8rem 0 0;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: $text;
+    z-index: 2;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.12);
+    }
+}
+
+.recipe-modal__body {
+    padding: 1rem 1.4rem 1.4rem;
+}
+
+.recipe-modal__header {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.recipe-modal__img {
+    width: 100%;
+    max-width: 240px;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.recipe-modal__header-info {
+    flex: 1;
+    min-width: 180px;
+}
+
+.recipe-modal__title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: $text;
+    margin: 0 0 0.6rem;
+}
+
+.recipe-modal__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+}
+
+.recipe-modal__diets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.4rem;
+
+    .exercise-pill {
+        background: rgba(255, 209, 0, 0.1);
+        border: 1px solid rgba(255, 209, 0, 0.25);
+        color: $accent;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+}
+
+.recipe-modal__nutrition {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    background: rgba(255, 209, 0, 0.06);
+    border: 1px solid rgba(255, 209, 0, 0.2);
+    border-radius: 12px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1rem;
+
+    span {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.88rem;
+        color: $text;
+        font-weight: 600;
+
+        i {
+            color: $accent;
+        }
+    }
+}
+
+.recipe-modal__section {
+    margin-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.8rem;
+}
+
+.recipe-modal__summary {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: $muted;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.recipe-modal__ingredients {
+    margin: 0.5rem 0 0;
+    padding-left: 1.2rem;
+    color: $text;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    columns: 2;
+
+    @media (max-width: 480px) {
+        columns: 1;
+    }
+}
+
+.recipe-modal__footer {
+    margin-top: 1.2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 1rem;
+}
+
+.recipe-similar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+
+.recipe-similar-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.6rem 0.9rem;
+    cursor: pointer;
+    text-align: left;
+    font-family: "Poppins", sans-serif;
+    color: $text;
+    font-size: 0.88rem;
+    transition: background 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+        background: rgba(255, 209, 0, 0.06);
+        border-color: rgba(255, 209, 0, 0.3);
+    }
+
+    small {
+        color: $muted;
+        font-size: 0.78rem;
+        white-space: nowrap;
+        margin-left: 0.5rem;
+    }
+}
+
+.recipe-diet-section {
+    margin-bottom: 1rem;
+}
+
+.recipe-filter-label {
+    font-size: 0.78rem;
+    color: $muted;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.6rem;
+    display: block;
+}
+
+.recipe-chips-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.recipe-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.82rem;
+    color: $muted;
+    cursor: pointer;
+    font-family: "Poppins", sans-serif;
+    transition: all 0.18s ease;
+
+    i {
+        font-size: 0.85rem;
+    }
+
+    &:hover {
+        border-color: rgba(255, 209, 0, 0.4);
+        color: $text;
+    }
+
+    &.is-active {
+        background: rgba(255, 209, 0, 0.12);
+        border-color: $accent;
+        color: $accent;
+        font-weight: 600;
+    }
+}
+
+.recipe-active-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.8rem;
+    padding: 0.6rem 0.8rem;
+    background: rgba(255, 209, 0, 0.06);
+    border: 1px solid rgba(255, 209, 0, 0.2);
+    border-radius: 12px;
+}
+
+.recipe-active-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 209, 0, 0.12);
+    border: 1px solid rgba(255, 209, 0, 0.3);
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.78rem;
+    color: $accent;
+
+    button {
+        background: none;
+        border: none;
+        color: $accent;
+        cursor: pointer;
+        font-size: 0.95rem;
+        padding: 0;
+        line-height: 1;
+    }
+}
+
+.recipe-diet-pill {
+    background: rgba(255, 209, 0, 0.1) !important;
+    border: 1px solid rgba(255, 209, 0, 0.25) !important;
+    color: $accent !important;
+    font-size: 0.75rem !important;
+}

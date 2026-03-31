@@ -1,4 +1,4 @@
-<nav class="site-nav" aria-label="Navegacion principal">
+<nav class="site-nav site-nav--desktop" aria-label="Navegacion principal">
     <a class="site-nav__link" href="{{ route('home') }}">Inicio</a>
     <a class="site-nav__link" href="{{ url('/recetas') }}">Recetas</a>
 
