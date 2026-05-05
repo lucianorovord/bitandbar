@@ -26,7 +26,7 @@ class SpoonacularController extends Controller
 
             $response = Http::get($endpoint, [
                 'ingredients' => $ingredientsCsv,
-                'number' => 5,
+                'number' => 21,
                 'apiKey' => env('SPOONACULAR_KEY'),
             ]);
 
